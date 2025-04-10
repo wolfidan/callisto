@@ -1,0 +1,35 @@
+Operation Radio Telescope
+File Explorer: 
+Folder: CALLISTO-01
+-	Application: 
+o	callisto.cfg: info generali (qui posso ad esempio cambiare il file delle frequenze che leggerà per le misure).
+o	scheduler: define start and stop times of the measurements
+o	frqXXXX: frequenze misurate
+
+Steps to start measurements:
+1.	Open Spyder
+2.	Go in CALLISTO-01, PythonScripts and open “sunpos_AZI_ELE.py”
+3.	Open Callisto application
+a.	Open Lightcurve
+b.	Set “manual” to perform calibration
+c.	Important to set CaliProc=False (in configsun.ini)
+4.	Run sunpos_AZI_ELE.py
+5.	Execute Non-Planarity test:
+a.	Open EstimateElGrad.py and nonplanarity.txt in spyder
+b.	Open PuTTY 
+i.	Click on DisEqC -> a terminal will appear
+ii.	Write -h in the terminal and click enter
+c.	Steps non-planarity test:
+i.	In terminal write ele0 and enter
+ii.	Then azi# in terminal and enter // # are the azimuth we need to check -> somebody outside should read these number and then write it in the nonplanarity.txt
+d.	Run EstimateElGrad.py
+i.	A figure will open with a “error in azimuth plane”
+ii.	Note the parameter planecorr=…
+iii.	Insert the value of the parameter planecorr in configsun.ini
+6.	Find max Lightcurve:
+a.	In configsun.ini modify aziref/eleref to have the max lightcurve
+7.	Start automatic Suntracking:
+a.	CaliProc in configsun.ini back to CaliProc=True
+b.	In Callisto application set “automatic”
+c.	Check that start time in scheduler is correct
+d.	Open system scheduler (application with a clock-icon), right click on “Application Suntracker) and set “Enable”

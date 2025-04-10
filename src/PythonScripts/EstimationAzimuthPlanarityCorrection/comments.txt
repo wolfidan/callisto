@@ -1,0 +1,13 @@
+Put inclination sensor to the dish adapter to measure elevation
+Bring the dish into average elevation, such as 45° which in most cases corresponds to rotor-elevation 0° -> ele0
+
+Start with azimuth at rotor-position -75 which is usually in the west, depending on mechanical mounting
+Measure elevation at every 5° or at least every 10° till 75 in the east
+
+Edit file non-planarity.txt as shown in the example with comma as delimiter
+Do not add CR/LF at the end of the list
+
+Run the script EstimationElevationGradient.py
+
+When done, edit file configsun.ini and configmoon.ini with the planecorr found.
+Ideally, when the telescope is perfectly aligned, it is close to 0.000

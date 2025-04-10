@@ -1,0 +1,72 @@
+# Atmospheric noise temperature [K] values for the Tcold measures
+# These values have been taken from here
+#         https://descanso.jpl.nasa.gov/propagation/Ka_Band/JPL-D32584_1.pdf
+# The Tcold value depends on the atmospheric condisions, such as clouds, atmospheric
+# gasses, rain, and so on. Therefore, here we use these tabulated values to apply a first
+# order correction (rather than the fixed value at 12 K).
+#
+# The value of the Tcold temperature depends on the frequency, elevation and the weather
+# conditions, therefore in the table we include the following columns
+#     - freq:  frequency in GHz
+#     - elev:  elevation in degrees
+#     - cond:  weather conditions, if 'clear' or 'cloudy'
+#     - AH:    absolute humidity in g/m3
+#     - CL:    columnar liquid in kg/m2
+#     - Tcold: estimate of the Tcold temperature in K
+freq,elev,cond,AH,CL,Tcold
+10,90,clear,15,0.5,4.7
+10,90,cloudy,15,0.5,7.33
+10,45,clear,15,0.5,6.62
+10,45,cloudy,15,0.5,10.30
+10,30,clear,15,0.5,9.32
+10,30,cloudy,15,0.5,14.46
+10,20,clear,15,0.5,13.52
+10,20,cloudy,15,0.5,20.89
+10,10,clear,15,0.5,25.89
+10,10,cloudy,15,0.5,39.56
+10,5,clear,15,0.5,48.04
+10,5,cloudy,15,0.5,72.26
+10,1,clear,15,0.5,129.36
+10,1,cloudy,15,0.5,193.91
+12,90,clear,15,0.5,5.99
+12,90,cloudy,15,0.5,9.71
+12,45,clear,15,0.5,8.43
+12,45,cloudy,15,0.5,13.64
+12,30,clear,15,0.5,11.85
+12,30,cloudy,15,0.5,19.09
+12,20,clear,15,0.5,17.16
+12,20,cloudy,15,0.5,27.47
+12,10,clear,15,0.5,32.70
+12,10,cloudy,15,0.5,51.47
+12,5,clear,15,0.5,60.12
+12,5,cloudy,15,0.5,92.18
+12,1,clear,15,0.5,156.40
+12,1,cloudy,15,0.5,225.27
+10,90,clear,21,1.2,5.49
+10,90,cloudy,21,1.2,11.61
+10,45,clear,21,1.2,7.74
+10,45,cloudy,21,1.2,16.28
+10,30,clear,21,1.2,10.88
+10,30,cloudy,21,1.2,22.74
+10,20,clear,21,1.2,15.76
+10,20,cloudy,21,1.2,32.62
+10,10,clear,21,1.2,30.12
+10,10,cloudy,21,1.2,60.59
+10,5,clear,21,1.2,55.66
+10,5,cloudy,21,1.2,107.03
+10,1,clear,21,1.2,147.87
+10,1,cloudy,21,1.2,247.87
+12,90,clear,21,1.2,7.24
+12,90,cloudy,21,1.2,15.87
+12,45,clear,21,1.2,10.19
+12,45,cloudy,21,1.2,22.19
+12,30,clear,21,1.2,14.30
+12,30,cloudy,21,1.2,30.86
+12,20,clear,21,1.2,20.67
+12,20,cloudy,21,1.2,43.97
+12,10,clear,21,1.2,39.22
+12,10,cloudy,21,1.2,80.06
+12,5,clear,21,1.2,71.53
+12,5,cloudy,21,1.2,136.40
+12,1,clear,21,1.2,180.32
+12,1,cloudy,21,1.2,270.25

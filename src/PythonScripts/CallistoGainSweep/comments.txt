@@ -1,0 +1,7 @@
+This script allows to find best gain for Callisto in terms of maximum sensitivity (lowest noise figure) and
+best immunity against strong local rfi such as satellites etc.
+Perform sweep twice, firstly for hot load while pointing the telescope to the ground and secondly for cold while pointing to cold sky.
+Avoid any geostationary satellte or Starlink.
+These two files then feed into the plotting script.
+Then chose best gain and edit callisto.cfg (PWM-value).
+
