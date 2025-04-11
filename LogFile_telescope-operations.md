@@ -53,4 +53,4 @@ For any questions, please contact me: andrea.francesco.battaglia@usi.irsol.ch or
 | 2025/04/02 15:00       | Andrea | According to the solar scans, I changed aziref to 181.2 |
 | 2025/04/04 06:00       | Andrea | The change I've done on 2025/04/02 was wrong, it should have been done on the other direction! I changed aziref now to 182.4 |
 | 2025/04/10 11:30       | Phil | The reflecting papers have been significantly reduced in size. We need to check now whether we still have the 15 minutes drift. |
-| 2025/04/10 15:00       | Phil | Measurements and other stuff done at the dish + feed. |
+| 2025/04/10 15:00       | Phil | Measurements and other stuff done at the telescope (dish + feed mainly). |
