@@ -1,5 +1,5 @@
 @echo off
-ECHO >> C:\xrt\git-log.txt
+ECHO. >> C:\xrt\git-log.txt
 echo Git push at %date% %time% >> C:\xrt\git-log.txt
 cd /d C:\xrt
 "C:\Program Files\Git\cmd\git.exe" add . >> C:\xrt\git-log.txt 2>&1
