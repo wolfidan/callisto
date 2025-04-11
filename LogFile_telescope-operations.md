@@ -4,7 +4,7 @@
 
 This file has been started by Andrea F. Battaglia, with the goal of keeping track of manual or technical telescope operations that may affect the solar flux obtained by CALLISTO. If there is no entry for a particular date means that the nominal solar measurements are done.
 **THIS DOCUMENT HAS BEEN CREATED ON 03/12/2024, therefore there is no track on particular telescope operations before this date.**
-For any questions, please contact me: andrea.francesco.battaglia@usi.irsol.ch
+For any questions, please contact andrea.francesco.battaglia@usi.irsol.ch
 
 
 ## Summary table
