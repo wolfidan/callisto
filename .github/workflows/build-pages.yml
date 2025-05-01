@@ -12,7 +12,7 @@ jobs:
 
       - name: Copy daily plots to docs/images
         run: |
-          mkdir -p doc/images
+          mkdir -p docs/images
           cp output/fig/solarflux/*.png docs/images/
           ls output/fig/solarflux/callisto_meteoswiss_*.png | \
           sed -E 's/.*callisto_meteoswiss_([0-9]+)\.png/\1/' | \
