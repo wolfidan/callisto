@@ -5,7 +5,7 @@ on:
     branches: [ main ]
 
 jobs:
-  copy-images:
+  image-lists:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -13,7 +13,7 @@ jobs:
       - name: Generate list of images
         run: |
           cd output
-          mkdir file_lists
+          mkdir -p file_lists
           find solar_scan/maps_solar-scan/solar-scan59_map_*.png -type f | jq -R . | jq -s . > file_lists/daily_quicklooks.json
           find fig/solarflux/callisto_meteoswiss_*.png -type f | jq -R . | jq -s . > file_lists/solar_raster.json
       - name: Commit and push
