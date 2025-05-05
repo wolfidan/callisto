@@ -55,3 +55,4 @@ For any questions, please contact andrea.francesco.battaglia@usi.irsol.ch
 | 2025/04/10 11:30       | Phil | The reflecting papers have been significantly reduced in size. We need to check now whether we still have the 15 minutes drift. |
 | 2025/04/10 15:00       | Phil | Measurements and other stuff done at the telescope (dish + feed mainly). |
 | 2025/04/22 08:46-09:49 | Phil | Measurements and other stuff done at the telescope (dish + feed mainly). |
+| 2025/05/05 17:38       | Daniel/Marco  | Changed aziref from 182.4 to 183.4 |
