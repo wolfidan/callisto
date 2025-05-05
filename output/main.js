@@ -2,8 +2,7 @@ let imageDates = [];
 let index = 0;
 
 function updateImage() {
-  const date = imageDates[index];
-  document.getElementById("plot").src = `images/callisto_meteoswiss_${date}.png`;
+  document.getElementById("plot").src = imageNames[index];
 }
 
 function prevImage() {
@@ -14,13 +13,14 @@ function nextImage() {
   if (index < imageDates.length - 1) { index++; updateImage(); }
 }
 
+function loadPage(name) {
 document.addEventListener("DOMContentLoaded", () => {
-  fetch("images/images.json")
+  fetch("images/"+name+".json")
     .then(response => response.json())
     .then(data => {
-      imageDates = data;
-      index = imageDates.length - 1; // most recent
+      imageNames = data;
+      index = imageNames.length - 1; // most recent
       updateImage();
     });
 });
-
+}

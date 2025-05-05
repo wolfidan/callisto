@@ -8,9 +8,10 @@
 </head>
 <body>
 <div class="topnav">
-  <a href="index.html">Daily quicklooks</a>
-  <a href="timeseries.html">Timeseries</a>
-</div>
+ 10   <a href="index.html">Daily quicklooks</a>
+ 11   <a href="timeseries.html">Timeseries</a>
+ 12   <a href="solarraster.html">Solar raster scan</a>
+ 13 </div>
 
   <h2>Solar flux timeseries</h2>
   <div style="width: 100%; display: table;">
@@ -23,7 +24,8 @@
 
   <script>
     // Load CSV externally
-    fetch('csv/daily-flux_2025.csv')
+	const currentYear = new Date().getFullYear();
+    fetch('data/proc_daily_flux/daily-flux_${currentYear}.csv')
       .then(response => {
         if (!response.ok) throw new Error("Network response was not ok");
         return response.text();
