@@ -5,26 +5,26 @@ on:
     branches: [ main ]
 
 jobs:
-  copy-images:
+  image-lists:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
-      - name: Copy daily plots to docs/images
+      - name: Generate list of images
         run: |
-          mkdir -p docs/images
-          mkdir -p docs/csv
-          cp output/fig/solarflux/*.png docs/images/
-          cp output/data/proc_daily_flux/daily-flux*.csv docs/csv/
-          ls output/fig/solarflux/callisto_meteoswiss_*.png | \
-          sed -E 's/.*callisto_meteoswiss_([0-9]+)\.png/\1/' | \
-          sort | jq -R . | jq -s . > docs/images/images.json
+          cd output
+          mkdir -p file_lists
+          find solar_scan/maps_solar-scan/solar-scan59_map_*.png -type f | jq -R . | jq -s . > file_lists/solar_raster.json
+          find fig/solarflux/callisto_meteoswiss_*.png -type f | jq -R . | jq -s . > file_lists/daily_quicklooks.json
       - name: Commit and push
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          git add docs/images
-          git add docs/csv
-          git commit -m "Update images [skip ci]" || echo "No changes to commit"
+          git add --all output/file_lists
+          git commit -m "Update images file lists" || echo "No changes to commit"
           git push
-
+      - name: Deploy to GH Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./output
