@@ -260,7 +260,6 @@ else:
             angles = list(itertools.product(Dazi59, Dele59))
             if ((scanning == False) and 
                (scanning59 == True) and 
-               (dt.minute == 58) and
                ((dt.hour == 8) or (dt.hour == 9) or (dt.hour == 10) or (dt.hour == 11) or (dt.hour == 12) or (dt.hour == 13))):
                 i = 0
                 for pos_azi, pos_ele in angles:
@@ -279,7 +278,7 @@ else:
                     time.sleep(2.2)
                     print("New scanning position Azimuth   = %7.2f  Elevation   = %6.2f" % (RotorAzi,RotorEle))                    
                     Log(azi + pos_azi,ele + pos_ele,'New scanning59 position')
-                    i += 1
+                    i+=1
                     
                 RotorAzi = azidir*(azi - aziref) # conversion 0° ... 360° -> +/- 180°
                 cmd = 'azi{:8.3f}\r'.format(RotorAzi)

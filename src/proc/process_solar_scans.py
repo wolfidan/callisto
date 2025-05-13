@@ -187,12 +187,12 @@ def main():
         time_df = df_motor[time_head]
 
         ### Read the values from the log file
-        df_motor_morning_before = df_motor[(df_motor[time_head] > 8.98) & (df_motor[time_head] < 9.0)]
-        df_motor_morning_after = df_motor[(df_motor[time_head] > 9.98) & (df_motor[time_head] < 10.0)]
-        df_motor_noon_before = df_motor[(df_motor[time_head] > 10.98) & (df_motor[time_head] < 11.0)]
-        df_motor_noon_after = df_motor[(df_motor[time_head] > 11.98) & (df_motor[time_head] < 12.0)]
-        df_motor_afternoon_before = df_motor[(df_motor[time_head] > 12.98) & (df_motor[time_head] < 13.0)]
-        df_motor_afternoon_after = df_motor[(df_motor[time_head] > 13.98) & (df_motor[time_head] < 14.0)]
+        df_motor_morning_before = df_motor[(df_motor[time_head] > 8.96) & (df_motor[time_head] < 9.0)]
+        df_motor_morning_after = df_motor[(df_motor[time_head] > 9.96) & (df_motor[time_head] < 10.0)]
+        df_motor_noon_before = df_motor[(df_motor[time_head] > 10.96) & (df_motor[time_head] < 11.0)]
+        df_motor_noon_after = df_motor[(df_motor[time_head] > 11.96) & (df_motor[time_head] < 12.0)]
+        df_motor_afternoon_before = df_motor[(df_motor[time_head] > 12.96) & (df_motor[time_head] < 13.0)]
+        df_motor_afternoon_after = df_motor[(df_motor[time_head] > 13.96) & (df_motor[time_head] < 14.0)]
         msg_morning_before = df_motor_morning_before[msg_head].values
         msg_morning_after = df_motor_morning_after[msg_head].values
         msg_noon_before = df_motor_noon_before[msg_head].values

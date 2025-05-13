@@ -56,3 +56,4 @@ For any questions, please contact andrea.francesco.battaglia@usi.irsol.ch
 | 2025/04/10 15:00       | Phil | Measurements and other stuff done at the telescope (dish + feed mainly). |
 | 2025/04/22 08:46-09:49 | Phil | Measurements and other stuff done at the telescope (dish + feed mainly). |
 | 2025/05/05 17:38       | Daniel/Marco  | Changed aziref from 182.4 to 183.4 |
+| 2025/05/12 18:19       | Daniel        | Changed azi offsets of sun raster to -2, -1.5, ..., 2. and give it 2min (instead of 1) to complete |
