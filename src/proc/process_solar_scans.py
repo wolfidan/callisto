@@ -129,12 +129,12 @@ def main():
     
     ### scan times
     ## "before" and "after" refers to the times we use to estimate the daily flux 3 times a day
-    ref_time_scan_morning_before = ['08:59:00', '09:00:00']
-    ref_time_scan_morning_after = ['09:59:00', '10:00:00']
-    ref_time_scan_noon_before = ['10:59:00', '11:00:00']
-    ref_time_scan_noon_after = ['11:59:00', '12:00:00']
-    ref_time_scan_afternoon_before = ['12:59:00', '13:00:00']
-    ref_time_scan_afternoon_after = ['13:59:00', '14:00:00']
+    ref_time_scan_morning_before = ['08:56:00', '09:00:00']
+    ref_time_scan_morning_after = ['09:56:00', '10:00:00']
+    ref_time_scan_noon_before = ['10:56:00', '11:00:00']
+    ref_time_scan_noon_after = ['11:56:00', '12:00:00']
+    ref_time_scan_afternoon_before = ['12:56:00', '13:00:00']
+    ref_time_scan_afternoon_after = ['13:56:00', '14:00:00']
 
     ###########################################################################
     
