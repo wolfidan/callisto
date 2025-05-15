@@ -257,7 +257,31 @@ else:
             ########## ADDED BY ANDREA #########################################
             ########## modif by wod 12 may 2025 ################################
             
-            angles = list(itertools.product(Dazi59, Dele59))
+            # Generate all angles from specified steps
+            # minimize angle jumps
+            # for example 
+            # [(-1, 2),
+            # (-1, 0),
+            # (-1, -2),
+            # (-0.5, -2),
+            # (-0.5, 0),
+            # (-0.5, 2),
+            # (0, 2),
+            # (0, 0),
+            # (0, -2),
+            # (0.5, -2),
+            # (0.5, 0),
+            # (0.5, 2),
+            # (1, 2),
+            # (1, 0),
+            # (1, -2)]
+            
+            angles=[]
+            for i in range(len(Dazi59)):
+                a = len(Dele59) *  [Dazi59[i]]
+                b = Dele59 if i%2 else Dele59[::-1]
+                angles.extend([(a[i],b[i]) for i in range(len(a))])
+
             if ((scanning == False) and 
                (scanning59 == True) and 
                (dt.minute == 58) and
