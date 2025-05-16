@@ -159,6 +159,7 @@ sun = ephem.Sun()
 sun.compute(MyLocation)
 azi = math.degrees(sun.az)
 ele = math.degrees(sun.alt)
+
 print("Sun data: Azimuth   = %7.2f  Elevation   = %6.2f" % (azi,ele))
 
 lst = MyLocation.sidereal_time()
