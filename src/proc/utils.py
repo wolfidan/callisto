@@ -13,13 +13,13 @@ PATH_FIT_FOLDER = 'C:\\xrt\\output\\data\\raw\\FITfiles'
 
 #**************************************************************************
 
-def log_execution(message, plot_separation=True):
+def log_execution(fname, message, plot_separation=True):
     """
     Description:
         This is to store in an external file a log, whether the script run
         successfully or an error occurred.
     """
-    with open('C:\\xrt\\output\\solar_scan\\log_process_solar_scan.txt', 'a') as log_file:
+    with open(fname, 'a') as log_file:
         timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         log_file.write(f'\n{timestamp} - {message}')
         if plot_separation == True: 

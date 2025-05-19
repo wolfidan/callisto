@@ -32,12 +32,6 @@ from utils import read_motor_log, paraboloid_2d, gaussian_2d
 from utils import convert_decimal_hour_timedelta, readfit, log_execution
 from utils import get_fit_files, average_around_time
 
-### Path to the folder where to get the FIT files
-path_fit_folder = 'C:\\xrt\\output\\data\\raw\\FITfiles'
-
-### Path to the folder where to get the log of the motors
-path_log_motor = 'C:\\xrt\\src\\PythonScripts\\TrackingSun'
-
 ### Path where to store the diagnostics images
 folder_images = 'C:\\xrt\\output\\solar_scan\\maps_solar-scan'
 
@@ -60,6 +54,9 @@ max_time_diff_sunscans = 60
 ### If the distance of the center of the fitted paraboloid is larger than this value,
 # we consider the measure as "off-pointing"
 dist_quality_check = 0.7 # deg
+
+# Log filename
+logfname = 'C:\\xrt\\output\\solar_scan\\log_process_solar_scan.txt'
 
 ###########################################################################
 
@@ -84,7 +81,7 @@ time_breaks = np.where(np.diff(all_scans['TIME [UT]']) > max_time_diff_sunscans/
 time_breaks = [-1] + list(time_breaks) + [len(all_scans) - 1]
 nscans = len(time_breaks) - 1
 
-log_execution(f"Found {nscans} scans in the motor log file for day {day}")
+log_execution(logfname, f"Found {nscans} scans in the motor log file for day {day}")
 
 plt.rcParams.update({'font.size': 18})
 nc = 2 # nb of plot columns
@@ -110,14 +107,14 @@ for i in range(nscans): # loop on all sun raster scans
     dtimes = [day_dt + dt for dt in timedelta]
     # add 1.1 second to every time to get time at middle of scan
     dtimes_with_offset = [dt + datetime.timedelta(seconds = 1.1) for dt in dtimes]
-    log_execution(f"Processing scan from {dtimes[0]} to {dtimes[-1]}")
+    log_execution(logfname, f"Processing scan from {dtimes[0]} to {dtimes[-1]}")
     try:
         # Find fit file closest in time (just before)
         idx_closest = np.where(np.array(times_fit_files) < dtimes[-1])[0][-1]
         
         # Read fit file
         fit_data = readfit(fit_files[idx_closest])
-        log_execution(f"Corresponding fit file: {fit_files[idx_closest]}")
+        log_execution(logfname, f"Corresponding fit file: {fit_files[idx_closest]}")
         
         ### Get the index of the frequency to look at
         idx_freq_closest = np.argmin(np.abs(fit_data["freqs"] - freq))
@@ -172,8 +169,8 @@ for i in range(nscans): # loop on all sun raster scans
             plot_fit = False
             params = [np.nan, np.nan, np.nan, np.nan, np.nan]
             quality_check = 0
-            log_execution(f"The fit of the scan at {dtimes[-1].strftime("%Y-%m-%d %H:%M")} has failed!")
-            log_execution(f"Error is {err}")
+            log_execution(logfname, f"The fit of the scan at {dtimes[-1].strftime("%Y-%m-%d %H:%M")} has failed!")
+            log_execution(logfname, f"Error is {err}")
             
         
         fit_data_in_scan = fit_data["data"][idx_freq_closest, mask_inscan]
@@ -182,7 +179,7 @@ for i in range(nscans): # loop on all sun raster scans
         # First diagnostics plot: time profiles with extracted values
 
         dt_scan = 0.75
-        fig1.suptitle(f"Solar scan at {freq} MHz on {day_dt} (aziref = {aziref} deg; eleref = {eleref} deg)", 
+        fig1.suptitle(f"Solar scan at {freq} MHz on {day_dt.strftime("%Y-%m-%d")} (aziref = {aziref} deg; eleref = {eleref} deg)", 
                     y=0.98)
 
         ax1[i].plot(fit_times_in_scan, fit_data_in_scan, label='Morning', lw=2)
@@ -246,7 +243,7 @@ for i in range(nscans): # loop on all sun raster scans
          #fig2.savefig(os.path.join(folder_images,f'solar-scan59_map_{day_dt.strftime("%Y-%m-%d")}.png'))
 
         # If everything runs successfully
-        log_execution("Successfully run")
+        log_execution(logfname, "Successfully run")
 
     except Exception as err:
         ### Save NaNs in the csv file if it fails
@@ -255,7 +252,7 @@ for i in range(nscans): # loop on all sun raster scans
         
         ### If an error occurs, log the error message and stack trace
         error_message = f"Error: {str(err)}\n{traceback.format_exc()}"
-        log_execution(error_message)
+        log_execution(logfname, error_message)
     finally:
         all_params.append(params)
         all_quality_checks.append(quality_check)
@@ -289,6 +286,7 @@ for i in range(len(all_start_times)):
 
     df_offsets = pd.concat([df_offsets,new_row], ignore_index=True)
 df_offsets = df_offsets.sort_values(by='start_scan_UTC')
+df_offsets = df_offsets.drop_duplicates(subset="start_scan_UTC")
 df_offsets.to_csv(filepath_csv_offsets, index=False)
 
 
