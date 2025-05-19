@@ -84,7 +84,7 @@ time_breaks = np.where(np.diff(all_scans['TIME [UT]']) > max_time_diff_sunscans/
 time_breaks = [-1] + list(time_breaks) + [len(all_scans) - 1]
 nscans = len(time_breaks) - 1
 
-log_execution(f"Found {nscans} scan in the motor log file for day {day}")
+log_execution(f"Found {nscans} scans in the motor log file for day {day}")
 
 plt.rcParams.update({'font.size': 18})
 nc = 2 # nb of plot columns
@@ -110,13 +110,15 @@ for i in range(nscans): # loop on all sun raster scans
     dtimes = [day_dt + dt for dt in timedelta]
     # add 1.1 second to every time to get time at middle of scan
     dtimes_with_offset = [dt + datetime.timedelta(seconds = 1.1) for dt in dtimes]
-
+    log_execution(f"Processing scan from {dtimes[0]} to {dtimes[-1]}")
     try:
         # Find fit file closest in time (just before)
         idx_closest = np.where(np.array(times_fit_files) < dtimes[-1])[0][-1]
         
         # Read fit file
         fit_data = readfit(fit_files[idx_closest])
+        log_execution(f"Corresponding fit file: {fit_files[idx_closest]}")
+        
         ### Get the index of the frequency to look at
         idx_freq_closest = np.argmin(np.abs(fit_data["freqs"] - freq))
 
@@ -180,7 +182,7 @@ for i in range(nscans): # loop on all sun raster scans
         # First diagnostics plot: time profiles with extracted values
 
         dt_scan = 0.75
-        fig1.suptitle(f"Solar scan at {freq} MHz on {freq} (aziref = {aziref} deg; eleref = {eleref} deg)", 
+        fig1.suptitle(f"Solar scan at {freq} MHz on {day_dt} (aziref = {aziref} deg; eleref = {eleref} deg)", 
                     y=0.98)
 
         ax1[i].plot(fit_times_in_scan, fit_data_in_scan, label='Morning', lw=2)
