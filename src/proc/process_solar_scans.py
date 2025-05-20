@@ -61,7 +61,6 @@ logfname = 'C:\\xrt\\output\\solar_scan\\log_process_solar_scan.txt'
 ###########################################################################
 
 day = datetime.datetime.now(datetime.UTC).strftime('%Y%m%d')
-day = "20250519"
 day_dt = datetime.datetime.strptime(day, "%Y%m%d").replace(tzinfo = datetime.UTC)
 fit_files, times_fit_files = get_fit_files(day)
 
@@ -247,8 +246,10 @@ for i in range(nscans): # loop on all sun raster scans
             ax1[-1].set_axis_off()
             ax2[-1].set_axis_off()
         
-        fig1.savefig(os.path.join(folder_images,f'solar-scan59_time-profiles_{day_dt.strftime("%Y-%m-%d")}.png'))
-        fig2.savefig(os.path.join(folder_images,f'solar-scan59_map_{day_dt.strftime("%Y-%m-%d")}.png'))
+        fig1.savefig(os.path.join(folder_images,f'solar-scan59_time-profiles_{day_dt.strftime("%Y-%m-%d")}.png'),
+                     bbox_inches="tight", dpi=300)
+        fig2.savefig(os.path.join(folder_images,f'solar-scan59_map_{day_dt.strftime("%Y-%m-%d")}.png'),
+                     bbox_inches="tight", dpi=300)
 
         # If everything runs successfully
         log_execution(logfname, "Successfully run")
