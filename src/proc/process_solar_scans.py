@@ -61,6 +61,7 @@ logfname = 'C:\\xrt\\output\\solar_scan\\log_process_solar_scan.txt'
 ###########################################################################
 
 day = datetime.datetime.now(datetime.UTC).strftime('%Y%m%d')
+day = "20250519"
 day_dt = datetime.datetime.strptime(day, "%Y%m%d").replace(tzinfo = datetime.UTC)
 fit_files, times_fit_files = get_fit_files(day)
 
