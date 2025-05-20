@@ -86,10 +86,10 @@ log_execution(logfname, f"Found {nscans} scans in the motor log file for day {da
 plt.rcParams.update({'font.size': 18})
 nc = 2 # nb of plot columns
 nr = int(np.ceil(nscans / nc))
-fig1, ax1 = plt.subplots(nr,nc, figsize=(25, 7 * nr))
+fig1, ax1 = plt.subplots(nr,nc, figsize=(25, 6 * nr))
 nc = 3 # nb of plot columns
 nr = int(np.ceil(nscans / nc))
-fig2, ax2 = plt.subplots(nr,nc, figsize=(26, 8 * nr), sharex=True, sharey=True)
+fig2, ax2 = plt.subplots(nr,nc, figsize=(26, 8 * nr))
 ax1 = ax1.ravel()
 ax2 = ax2.ravel()
 
@@ -121,8 +121,8 @@ for i in range(nscans): # loop on all sun raster scans
 
         ##### only select times relevant for the scan in the FIT files
         buffer = datetime.timedelta(seconds = 1.5)
-        mask_inscan = np.logical_and(fit_data["datetimes"] >= dtimes[0] - buffer,
-                            fit_data["datetimes"] <= dtimes[-1] + buffer)
+        mask_inscan = np.logical_and(fit_data["datetimes"] >= dtimes[0] - buffer/2.0,
+                            fit_data["datetimes"] <= dtimes[-1] + buffer/2.)
         
         data_avg = average_around_time(fit_data["datetimes"],
                                     fit_data["data"][idx_freq_closest],
@@ -179,14 +179,20 @@ for i in range(nscans): # loop on all sun raster scans
         # First diagnostics plot: time profiles with extracted values
 
         dt_scan = 0.75
-        fig1.suptitle(f"Solar scan at {freq} MHz on {day_dt.strftime("%Y-%m-%d")} (aziref = {aziref} deg; eleref = {eleref} deg)", 
+        fig1.suptitle(f"Solar scan at {freq} MHz on {day_dt.strftime("%Y/%m/%d")} (aziref = {aziref} deg; eleref = {eleref} deg)", 
                     y=0.98)
 
+        # Calculate interval
+        tot_time = (fit_times_in_scan[-1] - fit_times_in_scan[0]).seconds
+        interval = 10 * int(np.ceil(tot_time / 60))
+            
         ax1[i].plot(fit_times_in_scan, fit_data_in_scan, label='Morning', lw=2)
         ax1[i].scatter(dtimes_with_offset, data_avg, c='r', s=100, label='Morning (averaged)')
         ax1[i].set_ylabel('dBadu')
         ax1[i].set_xlabel('UT')
         ax1[i].xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%H:%M:%S'))
+        ax1[i].xaxis.set_major_locator(plt.matplotlib.dates.SecondLocator(interval=interval))  
+        ax1[i].xaxis.set_minor_locator(plt.matplotlib.dates.SecondLocator())
         ax1[i].grid()
         ax1[i].tick_params(axis='x', direction='in', top=True, bottom=True, width=1., length=7)
         ax1[i].tick_params(axis='y', direction='in', left=True, right=True, width=1., length=7)
@@ -196,7 +202,7 @@ for i in range(nscans): # loop on all sun raster scans
             ax1[i].axvspan(dtimes_with_offset[j]-pd.to_timedelta(dt_scan/2, unit='s'), 
                     dtimes_with_offset[j]+pd.to_timedelta(dt_scan/2, unit='s'), color='gray', alpha=0.4)
         ax1[i].set_ylim([np.min(fit_data_in_scan)-3, np.max(fit_data_in_scan)+3])
-        ax1[i].xaxis.set_minor_locator(plt.matplotlib.dates.SecondLocator())
+        
         ax1[i].tick_params(axis='x', which='minor', direction='in', 
                         top=True, bottom=True, width=1, length=4)
 
@@ -225,6 +231,7 @@ for i in range(nscans): # loop on all sun raster scans
         ax2[i].tick_params(axis='x', direction='in', top=True, bottom=True, width=1., length=7)
         ax2[i].tick_params(axis='y', direction='in', left=True, right=True, width=1., length=7)
         ax2[i].grid()
+        ax2[i].axis("equal")
         cbar_m_before = plt.colorbar(cf_m_before)
         cbar_m_before.set_label('dBadu', labelpad=-59)
         ax2[i].add_patch(plt.Circle((delta_azi[idx_max], delta_ele[idx_max]), 0.12, color='r', fill=False, lw=2))
@@ -232,8 +239,8 @@ for i in range(nscans): # loop on all sun raster scans
         if not quality_check:
             ax2[i].text(0, 0.3, 'off-pointing', fontsize=40, color='red', fontweight='bold', alpha=0.5, ha='center', va='center')
             
-        fig1.subplots_adjust(top=0.93)
-        fig2.subplots_adjust(top=0.93)
+        fig1.subplots_adjust(top=0.92)
+        fig2.subplots_adjust(top=0.92)
         # delete empty axes if needed
         if nscans % 2:
             ax1[-1].set_axis_off()
