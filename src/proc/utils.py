@@ -10,6 +10,8 @@ import glob
 PATH_LOG_MOTOR = 'C:\\xrt\\src\\PythonScripts\\TrackingSun'
 ### Path to the folder where to get the FIT files
 PATH_FIT_FOLDER = 'C:\\xrt\\output\\data\\raw\\FITfiles'
+### Directory that contains MeteoSwiss ancillary data (precip, radiation, etc)
+PATH_METEOSWISS_DATA = 'C:\\xrt\\output\\data\\meteoswiss'
 
 #**************************************************************************
 
@@ -43,7 +45,8 @@ def readfit(path):
     # add datetime for convenience
     date = datetime.datetime.strptime(dict_fitfile["date"] 
             + "_" + dict_fitfile["T0"], "%Y/%m/%d_%H:%M:%S.%f")
-    dict_fitfile["datetimes"] = np.array([date + datetime.timedelta(seconds = dt) 
+    dict_fitfile["datetimes"] = np.array([(date + 
+                datetime.timedelta(seconds = dt)).replace(tzinfo=datetime.UTC)
                                  for dt in dict_fitfile["timeax"]])
     return dict_fitfile
 
@@ -104,6 +107,17 @@ def read_motor_log(day, path_log_motor = PATH_LOG_MOTOR):
 
 #**************************************************************************
 
+def get_meteoswiss_data(date):
+    ### Find the meteoswiss CSV file and open it
+    filename_csv = f'meteoswiss_{date.strftime("%Y-%m-%d")}.csv'
+    filepath_csv = os.path.join(PATH_METEOSWISS_DATA, filename_csv)
+    df_meteoswiss = pd.read_csv(filepath_csv, sep=',')
+    df_meteoswiss['time'] = pd.to_datetime(df_meteoswiss['time'])
+    
+    return df_meteoswiss
+        
+#**************************************************************************
+
 def get_fit_files(day, path_fit_folder = PATH_FIT_FOLDER):
     '''
     This function is used to get a list of all fit files and their times
@@ -115,8 +129,10 @@ def get_fit_files(day, path_fit_folder = PATH_FIT_FOLDER):
     list_fit.sort()
     # Get time of all fit files
     list_fit_times = [datetime.datetime.strptime(os.path.basename(fitname), 
-                    filename_format.format("%Y%m%d_%H%M%S"))
+                    filename_format.format("%Y%m%d_%H%M%S")).replace(tzinfo=datetime.UTC)
                     for fitname in list_fit]
+    list_fit = np.array(list_fit)
+    list_fit_times = np.array(list_fit_times)
     return list_fit, list_fit_times
 
 #**************************************************************************

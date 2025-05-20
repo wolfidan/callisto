@@ -60,8 +60,8 @@ logfname = 'C:\\xrt\\output\\solar_scan\\log_process_solar_scan.txt'
 
 ###########################################################################
 
-day = datetime.datetime.now().strftime('%Y%m%d')
-day_dt = datetime.datetime.strptime(day, "%Y%m%d")
+day = datetime.datetime.now(datetime.UTC).strftime('%Y%m%d')
+day_dt = datetime.datetime.strptime(day, "%Y%m%d").replace(tzinfo = datetime.UTC)
 fit_files, times_fit_files = get_fit_files(day)
 
 ### Read configuration file and get aziref and eleref
@@ -71,7 +71,7 @@ aziref    = config.getfloat('Tracker','aziref')
 eleref    = config.getfloat('Tracker','eleref')
 
 ### read txt file
-df_motor = read_motor_log(day, path_log_motor)
+df_motor = read_motor_log(day)
 
 # Get all scans from motor log
 all_scans = df_motor[df_motor['Message'] == message_sunscans]
@@ -246,6 +246,7 @@ for i in range(nscans): # loop on all sun raster scans
         log_execution(logfname, "Successfully run")
 
     except Exception as err:
+        raise
         ### Save NaNs in the csv file if it fails
         params = [np.nan, np.nan, np.nan, np.nan, np.nan]
         quality_check = 0

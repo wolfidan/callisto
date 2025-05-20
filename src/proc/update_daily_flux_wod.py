@@ -27,13 +27,13 @@ History:
 
 import pandas as pd
 import os
+import glob
 import scipy.constants as CON
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 import traceback
-
-from datetime import datetime
+import datetime
 from astropy.io import fits
 
 import sys
@@ -42,11 +42,13 @@ sys.path.append('C:\\xrt\\src\\')
 from tools.return_fits2process import *
 from tools.utils_fitfile import readfit
 from tools.utils import checkdirs
-
-from get_Tcold import get_Tcold
-from get_coord_Tcold import get_AziElev_Tcold
+from tools.get_Tcold import get_Tcold
+from tools.get_coord_Tcold import get_AziElev_Tcold
 
 from utils import log_execution
+from utils import get_fit_files
+from utils import get_meteoswiss_data
+
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -55,6 +57,9 @@ warnings.filterwarnings('ignore')
 
 ### Directory where to store the pointing offsets
 directory_csv_offsets = 'C:\\xrt\\output\\solar_scan'
+
+### Directory where the dailys sfu values are saved
+directory_output = 'C:\\xrt\\output\\data\\proc_daily_flux'
 
 ### Frequency to consider for the analysis
 freq = 10637 # MHz
@@ -76,7 +81,7 @@ ref_times_end = ["10:00",
 #************************** FUNCTIONS **************************
 
 
-def return_fits2process_csv(directory_fitfiles, directory_output):
+def return_fits2process_csv(directory_output):
     """
     Description:
         Check which data has not been process yet and return the filenames that need
@@ -94,33 +99,26 @@ def return_fits2process_csv(directory_fitfiles, directory_output):
     """
 
     ### List all csv files in directory_output
-    files_csv = [f for f in os.listdir(directory_output) if f.startswith('daily-flux_') and f.endswith('.csv')]
-    if len(files_csv) == 0:
+    files_csv = glob.glob(os.path.join(directory_output, "daily-flux*.csv"))
+    
+    latest_date = datetime.datetime(2024, 10, 27) # default if no file available
+    if len(files_csv):
         ### In the case no processing has been done yet, we consider from the first FIT file
         ## This is the first date (-1) to consider, according to Marco and Philipp
-        latest_date = pd.to_datetime('2024-10-27').date()        
-    else:
-        ### From the latest csv file, extract the latest date
-        files_csv.sort()
-        df_latest = pd.read_csv(os.path.join(directory_output, files_csv[-1]))
-        latest_date = pd.to_datetime(df_latest['it_start_UT'].iloc[-1]).date()
+        df_latest = pd.read_csv(files_csv[-1])
+        latest_date = pd.to_datetime(df_latest['it_start_UT'].iloc[-1])
 
-    ### List all raw FITS files in dir_raw that start with "meteoswiss" and ends with "fit"
-    files_raw = [f for f in os.listdir(directory_fitfiles) if f.startswith('meteoswiss') and f.endswith('fit')]
-    files_raw.sort()
-    ### From files_raw, extract the date of the observation
-    dates_raw = [pd.to_datetime(f.split('_')[1]).date() for f in files_raw]
-    ### Find the indices of the files in dates_raw that have a date larger than latest_date
-    idx = [i for i in range(len(dates_raw)) if dates_raw[i] > latest_date]
-
-    ### Files that have a date larger than latest_date
-    files2process = [files_raw[i] for i in idx]
-    dates2process = [dates_raw[i] for i in idx]
-
-    ### Remove the elements of the list in dates2process that have the same date
-    dates2process = sorted(list(set(dates2process)))
+    ctime = latest_date
+    # loop on all days from latest_date to now
+    files2process = {}
+    while ctime < datetime.datetime.now():
+        temp = get_fit_files(ctime.strftime("%Y%m%d"))
+        # key is first date of day, value is dict with keys
+        # times (all times) and files (all filenames)
+        files2process[temp[1][0]] = {"files": temp[0], "times": temp[1]}
+        ctime += datetime.timedelta(days = 1)
     
-    return files2process, dates2process
+    return files2process
 
 
 #**********
@@ -332,282 +330,6 @@ def integrated_std(data):
 #**********
 
 
-def plot_daily_fluxes(df_flux, directory_output,period):
-    """
-    Description:
-        Plot the daily fluxes over a month and over a year
-
-    Input:
-        df_flux: dataframe with the daily fluxes
-        directory_output: directory where the plots are stored
-        period: 'month' or 'year'
-
-    Output:
-        None
-    """
-
-    times_all = pd.to_datetime(df_flux['it_start_UT'].values)
-    #times_end_all = pd.to_datetime(df_flux['it_end_UT'])
-    sfu_all = df_flux['sfu_10640MHz'].values
-    std_all = df_flux['std_sfu_10640MHz'].values
-    corr_sfu_all = df_flux['corr_sfu_10640MHz'].values
-    corr_std_all = df_flux['corr_std_sfu_10640MHz'].values
-    precip_all = df_flux['precip_mm'].values
-    comment_all = df_flux['comment'].values
-    quality_check_all = df_flux['quality_check_pointing'].values
-    idx_morning = [i for i in range(len(times_all)) if times_all[i].hour == 9]
-    idx_noon = [i for i in range(len(times_all)) if times_all[i].hour == 11]
-    idx_afternoon = [i for i in range(len(times_all)) if times_all[i].hour == 13]
-    times_morning = times_all[idx_morning]
-    times_noon = times_all[idx_noon]
-    times_afternoon = times_all[idx_afternoon]
-    #times_end_morning = times_end_all[idx_morning]
-    #times_end_noon = times_end_all[idx_noon]
-    #times_end_afternoon = times_end_all[idx_afternoon]
-    sfu_morning = sfu_all[idx_morning]
-    sfu_noon = sfu_all[idx_noon]
-    sfu_afternoon = sfu_all[idx_afternoon]
-    std_morning = std_all[idx_morning]
-    std_noon = std_all[idx_noon]
-    std_afternoon = std_all[idx_afternoon]
-    corr_sfu_morning = corr_sfu_all[idx_morning]
-    corr_sfu_noon = corr_sfu_all[idx_noon]
-    corr_sfu_afternoon = corr_sfu_all[idx_afternoon]
-    corr_std_morning = corr_std_all[idx_morning]
-    corr_std_noon = corr_std_all[idx_noon]
-    corr_std_afternoon = corr_std_all[idx_afternoon]
-    precip_morning = precip_all[idx_morning]
-    precip_noon = precip_all[idx_noon]
-    precip_afternoon = precip_all[idx_afternoon]
-    comment_morning = comment_all[idx_morning]
-    comment_noon = comment_all[idx_noon]
-    comment_afternoon = comment_all[idx_afternoon]
-    quality_check_morning = quality_check_all[idx_morning]
-    quality_check_noon = quality_check_all[idx_noon]
-    quality_check_afternoon = quality_check_all[idx_afternoon]
-    
-    ### Get the indices where the pointing quality is bad
-    idx_bad_morning = [pp for pp, x in enumerate(quality_check_morning) if x == 0]
-    idx_bad_noon = [pp for pp, x in enumerate(quality_check_noon) if x == 0]
-    idx_bad_afternoon = [pp for pp, x in enumerate(quality_check_afternoon) if x == 0]
-    
-    ### Create diagnostics vertical lines
-    flares_morning = []
-    flares_noon = []
-    flares_afternoon = []
-    calib_issues_morning = []
-    calib_issues_noon = []
-    calib_issues_afternoon = []
-    precip_morning = []
-    precip_noon = []
-    precip_afternoon = []
-    telescope_operations_morning = []
-    telescope_operations_noon = []
-    telescope_operations_afternoon = []
-    multiple_issues_morning = []
-    multiple_issues_noon = []
-    multiple_issues_afternoon = []
-    for i in range(len(comment_morning)):
-        if comment_morning[i] == 'FL/IF ': flares_morning.append(i)
-        elif comment_morning[i] == 'CI/DM ': calib_issues_morning.append(i)
-        elif comment_morning[i] == 'PR ': precip_morning.append(i)
-        elif comment_morning[i] == 'TO ': telescope_operations_morning.append(i)
-        elif pd.notna(comment_morning[i]): multiple_issues_morning.append(i)
-    for i in range(len(comment_noon)):
-        if comment_noon[i] == 'FL/IF ': flares_noon.append(i)
-        elif comment_noon[i] == 'CI/DM ': calib_issues_noon.append(i)
-        elif comment_noon[i] == 'PR ': precip_noon.append(i)
-        elif comment_noon[i] == 'TO ': telescope_operations_noon.append(i)
-        elif pd.notna(comment_noon[i]): multiple_issues_noon.append(i)
-    for i in range(len(comment_afternoon)):
-        if comment_afternoon[i] == 'FL/IF ': flares_afternoon.append(i)
-        elif comment_afternoon[i] == 'CI/DM ': calib_issues_afternoon.append(i)
-        elif comment_afternoon[i] == 'PR ': precip_afternoon.append(i)
-        elif comment_afternoon[i] == 'TO ': telescope_operations_afternoon.append(i)
-        elif pd.notna(comment_afternoon[i]): multiple_issues_afternoon.append(i)
-
-    ### Plot the daily fluxes
-    
-    if period == 'month':
-        figsize = (18, 16)
-        interval_locator = mdates.DayLocator(interval=3)
-    elif period == 'year':
-        figsize = (24, 16)
-        interval_locator = mdates.MonthLocator(interval=1)
-    fig = plt.figure(figsize=figsize)
-    plt.rcParams.update({'font.size': 18})
-    
-    ax1 = fig.add_subplot(311)
-    ax1.errorbar(times_morning, corr_sfu_morning, yerr=corr_std_morning, fmt='o', color='gray', label='Morning (09:00 - 10:00 UT), corrected')
-    if len(idx_bad_morning) > 0:
-        for i in range(len(idx_bad_morning)):
-            ax1.scatter(times_morning[idx_bad_morning[i]], corr_sfu_morning[idx_bad_morning[i]], marker='x', color='red', lw=3, s=120)
-        ax1.scatter(times_morning[idx_bad_morning[0]], corr_sfu_morning[idx_bad_morning[0]], marker='x', color='red', lw=3, s=120, label='Off-pointing > 0.7 deg')    
-    ax1.errorbar(times_morning, sfu_morning, yerr=std_morning, fmt='o', color='black', label='Morning (09:00 - 10:00 UT)')
-    #ax1.errorbar(times_noon, sfu_noon, yerr=std_noon, fmt='o', color='black', label='Noon', alpha=0.5)
-    #ax1.errorbar(times_afternoon, sfu_afternoon, yerr=std_afternoon, fmt='^', color='black', label='Afternoon', alpha=0.5)
-    ax1.set_ylabel('Solar flux density [sfu]')
-    ax1.set_title('Daily solar fluxes (morning) over a %s, at 10.64 GHz' % period)
-    ax1.xaxis.set_major_locator(interval_locator)
-    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
-    #ax1.xaxis.set_minor_locator(mdates.HourLocator(interval=1))
-    ax1.grid()
-    ax1.set_ylim(200, 500)
-    ax1.set_xlim(times_all[0]-pd.to_timedelta(10, unit='h'), times_all[-1]+pd.to_timedelta(10, unit='h'))
-    for i in range(len(flares_morning)):
-        if i == 0:
-            ax1.fill_between([times_morning[flares_morning[i]], times_morning[flares_morning[i]]+pd.Timedelta(hours=1)], 
-                0, 1000, color='orange', alpha=0.7, label='Flare or interference')
-        else:
-            ax1.fill_between([times_morning[flares_morning[i]], times_morning[flares_morning[i]]+pd.Timedelta(hours=1)], 
-                0, 1000, color='orange', alpha=0.7)
-    for i in range(len(calib_issues_morning)):
-        if i == 0:
-            ax1.fill_between([times_morning[calib_issues_morning[i]], times_morning[calib_issues_morning[i]]+pd.Timedelta(hours=1)],
-                0, 1000, color='red', alpha=0.7, label='Drop in flux or delayed motor')
-        else:
-            ax1.fill_between([times_morning[calib_issues_morning[i]], times_morning[calib_issues_morning[i]]+pd.Timedelta(hours=1)],
-            0, 1000, color='red', alpha=0.7)
-    for i in range(len(precip_morning)):
-        if i == 0:    
-            ax1.fill_between([times_morning[precip_morning[i]], times_morning[precip_morning[i]]+pd.Timedelta(hours=1)],
-                0, 1000, color='blue', alpha=0.7, label='Precipitation')
-        else:
-            ax1.fill_between([times_morning[precip_morning[i]], times_morning[precip_morning[i]]+pd.Timedelta(hours=1)],
-                0, 1000, color='blue', alpha=0.7)
-    for i in range(len(telescope_operations_morning)):
-        if i == 0:    
-            ax1.fill_between([times_morning[telescope_operations_morning[i]], times_morning[telescope_operations_morning[i]]+pd.Timedelta(hours=1)],
-                0, 1000, color='green', alpha=0.7, label='Telescope operation or missing files')
-        else:
-            ax1.fill_between([times_morning[telescope_operations_morning[i]], times_morning[telescope_operations_morning[i]]+pd.Timedelta(hours=1)],
-                0, 1000, color='green', alpha=0.7)
-    for i in range(len(multiple_issues_morning)):
-        if i == 0:    
-            ax1.fill_between([times_morning[multiple_issues_morning[i]], times_morning[multiple_issues_morning[i]]+pd.Timedelta(hours=1)],
-                0, 1000, color='black', alpha=0.7, label='Multiple issues', hatch='/')
-        else:
-            ax1.fill_between([times_morning[multiple_issues_morning[i]], times_morning[multiple_issues_morning[i]]+pd.Timedelta(hours=1)],
-            0, 1000, color='black', alpha=0.7, hatch='/')
-    ax1.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-
-    ax2 = fig.add_subplot(312)
-    #ax2.errorbar(times_morning, sfu_morning, yerr=std_morning, fmt='*', color='black', label='Morning', alpha=0.5)
-    ax2.errorbar(times_noon, corr_sfu_noon, yerr=corr_std_noon, fmt='o', color='gray', label='Noon (11:00 - 12:00 UT), corrected')
-    if len(idx_bad_noon) > 0:
-        for i in range(len(idx_bad_noon)):
-            ax2.scatter(times_noon[idx_bad_noon[i]], corr_sfu_noon[idx_bad_noon[i]], marker='x', color='red', lw=3, s=120)
-        ax2.scatter(times_noon[idx_bad_noon[0]], corr_sfu_noon[idx_bad_noon[0]], marker='x', color='red', lw=3, s=120, label='Off-pointing > 0.7 deg')
-    ax2.errorbar(times_noon, sfu_noon, yerr=std_noon, fmt='o', color='black', label='Noon (11:00 - 12:00 UT)')
-    #ax2.errorbar(times_afternoon, sfu_afternoon, yerr=std_afternoon, fmt='^', color='black', label='Afternoon', alpha=0.5)
-    ax2.set_ylabel('Solar flux density [sfu]')
-    ax2.set_title('Daily solar fluxes (noon) over a %s, at 10.64 GHz' % period)
-    ax2.xaxis.set_major_locator(interval_locator)
-    ax2.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
-    ax2.grid()
-    ax2.set_ylim(200, 500)
-    ax2.set_xlim(times_all[0]-pd.to_timedelta(10, unit='h'), times_all[-1]+pd.to_timedelta(10, unit='h'))
-    for i in range(len(flares_noon)):
-        if i == 0:
-            ax2.fill_between([times_noon[flares_noon[i]], times_noon[flares_noon[i]]+pd.Timedelta(hours=1)], 
-                0, 1000, color='orange', alpha=0.7, label='Flare or interference')
-        else:
-            ax2.fill_between([times_noon[flares_noon[i]], times_noon[flares_noon[i]]+pd.Timedelta(hours=1)], 
-                0, 1000, color='orange', alpha=0.7)
-    for i in range(len(calib_issues_noon)):
-        if i == 0:
-            ax2.fill_between([times_noon[calib_issues_noon[i]], times_noon[calib_issues_noon[i]]+pd.Timedelta(hours=1)],
-                0, 1000, color='red', alpha=0.7, label='Drop in flux or delayed motor')
-        else:
-            ax2.fill_between([times_noon[calib_issues_noon[i]], times_noon[calib_issues_noon[i]]+pd.Timedelta(hours=1)],
-            0, 1000, color='red', alpha=0.7)
-    for i in range(len(precip_noon)):
-        if i == 0:    
-            ax2.fill_between([times_noon[precip_noon[i]], times_noon[precip_noon[i]]+pd.Timedelta(hours=1)],
-                0, 1000, color='blue', alpha=0.7, label='Precipitation')
-        else:
-            ax2.fill_between([times_noon[precip_noon[i]], times_noon[precip_noon[i]]+pd.Timedelta(hours=1)],
-                0, 1000, color='blue', alpha=0.7)
-    for i in range(len(telescope_operations_noon)):
-        if i == 0:    
-            ax2.fill_between([times_noon[telescope_operations_noon[i]], times_noon[telescope_operations_noon[i]]+pd.Timedelta(hours=1)],
-                0, 1000, color='green', alpha=0.7, label='Telescope operation or missing files')
-        else:
-            ax2.fill_between([times_noon[telescope_operations_noon[i]], times_noon[telescope_operations_noon[i]]+pd.Timedelta(hours=1)],
-                0, 1000, color='green', alpha=0.7)
-    for i in range(len(multiple_issues_noon)):
-        if i == 0:    
-            ax2.fill_between([times_noon[multiple_issues_noon[i]], times_noon[multiple_issues_noon[i]]+pd.Timedelta(hours=1)],
-                0, 1000, color='black', alpha=0.7, label='Multiple issues', hatch='/')
-        else:
-            ax2.fill_between([times_noon[multiple_issues_noon[i]], times_noon[multiple_issues_noon[i]]+pd.Timedelta(hours=1)],
-            0, 1000, color='black', alpha=0.7, hatch='/')
-    ax2.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    
-    
-    ax3 = fig.add_subplot(313)
-    #ax3.errorbar(times_morning, sfu_morning, yerr=std_morning, fmt='*', color='black', label='Morning', alpha=0.5)
-    #ax3.errorbar(times_noon, sfu_noon, yerr=std_noon, fmt='o', color='black', label='Noon', alpha=0.5)
-    ax3.errorbar(times_afternoon, corr_sfu_afternoon, yerr=corr_std_afternoon, fmt='o', color='gray', label='Afternoon (13:00 - 14:00 UT), corrected')
-    if len(idx_bad_afternoon) > 0:
-        for i in range(len(idx_bad_afternoon)):
-            ax3.scatter(times_afternoon[idx_bad_afternoon[i]], corr_sfu_afternoon[idx_bad_afternoon[i]], marker='x', color='red', lw=3, s=120)
-        ax3.scatter(times_afternoon[idx_bad_afternoon[0]], corr_sfu_afternoon[idx_bad_afternoon[0]], marker='x', color='red', lw=3, s=120, label='Off-pointing > 0.7 deg')
-    ax3.errorbar(times_afternoon, sfu_afternoon, yerr=std_afternoon, fmt='o', color='black', label='Afternoon (13:00 - 14:00 UT)')
-    ax3.set_ylabel('Solar flux density [sfu]')
-    ax3.set_title('Daily solar fluxes (afternoon) over a %s, at 10.64 GHz' % period)
-    ax3.xaxis.set_major_locator(interval_locator)
-    ax3.xaxis.set_major_formatter(mdates.DateFormatter('%m-%d'))
-    #ax3.xaxis.set_minor_locator(mdates.HourLocator(interval=1))
-    ax3.grid()
-    ax3.set_ylim(200, 500)
-    ax3.set_xlim(times_all[0]-pd.to_timedelta(10, unit='h'), times_all[-1]+pd.to_timedelta(10, unit='h'))
-    for i in range(len(flares_afternoon)):
-        if i == 0:
-            ax3.fill_between([times_afternoon[flares_afternoon[i]], times_afternoon[flares_afternoon[i]]+pd.Timedelta(hours=1)], 
-                0, 1000, color='orange', alpha=0.7, label='Flare or interference')
-        else:
-            ax3.fill_between([times_afternoon[flares_afternoon[i]], times_afternoon[flares_afternoon[i]]+pd.Timedelta(hours=1)], 
-                0, 1000, color='orange', alpha=0.7)
-    for i in range(len(calib_issues_afternoon)):
-        if i == 0:
-            ax3.fill_between([times_afternoon[calib_issues_afternoon[i]], times_afternoon[calib_issues_afternoon[i]]+pd.Timedelta(hours=1)],
-                0, 1000, color='red', alpha=0.7, label='Drop in flux or delayed motor')
-        else:
-            ax3.fill_between([times_afternoon[calib_issues_afternoon[i]], times_afternoon[calib_issues_afternoon[i]]+pd.Timedelta(hours=1)],
-            0, 1000, color='red', alpha=0.7)
-    for i in range(len(precip_afternoon)):
-        if i == 0:    
-            ax3.fill_between([times_afternoon[precip_afternoon[i]], times_afternoon[precip_afternoon[i]]+pd.Timedelta(hours=1)],
-                0, 1000, color='blue', alpha=0.7, label='Precipitation')
-        else:
-            ax3.fill_between([times_afternoon[precip_afternoon[i]], times_afternoon[precip_afternoon[i]]+pd.Timedelta(hours=1)],
-                0, 1000, color='blue', alpha=0.7)
-    for i in range(len(telescope_operations_afternoon)):
-        if i == 0:    
-            ax3.fill_between([times_afternoon[telescope_operations_afternoon[i]], times_afternoon[telescope_operations_afternoon[i]]+pd.Timedelta(hours=1)],
-                0, 1000, color='green', alpha=0.7, label='Telescope operation or missing files')
-        else:
-            ax3.fill_between([times_afternoon[telescope_operations_afternoon[i]], times_afternoon[telescope_operations_afternoon[i]]+pd.Timedelta(hours=1)],
-                0, 1000, color='green', alpha=0.7)
-    for i in range(len(multiple_issues_afternoon)):
-        if i == 0:    
-            ax3.fill_between([times_afternoon[multiple_issues_afternoon[i]], times_afternoon[multiple_issues_afternoon[i]]+pd.Timedelta(hours=1)],
-                0, 1000, color='black', alpha=0.7, label='Multiple issues', hatch='/')
-        else:
-            ax3.fill_between([times_afternoon[multiple_issues_afternoon[i]], times_afternoon[multiple_issues_afternoon[i]]+pd.Timedelta(hours=1)],
-            0, 1000, color='black', alpha=0.7, hatch='/')
-    ax3.set_xlabel('Start time: '+str(times_all[0].year)+'-'+str(times_all[0].month)+'-'+str(times_all[0].day))
-    ax3.legend(loc='center left', bbox_to_anchor=(1, 0.5))
-    
-    plt.tight_layout()
-    plt.savefig(os.path.join(directory_output, 'daily_fluxes_%s.png' % period))
-    plt.close()
-
-
-#**********
-
-
 def f_offpointing_correction(dist):
     '''
     This is the formula we use to calculate the correction factor for the offpointing.
@@ -747,141 +469,108 @@ def get_correction_factor(directory_offsets, date):
 
 #************************** MAIN **************************
 
-
-if __name__ == '__main__':
-
-    ### Frequency to be considered in MHz
-    in_freq = 10640
-
-    ### Directories
-    directory_fitfiles = 'C:\\xrt\\output\\data\\raw\\FITfiles'
-    directory_output = 'C:\\xrt\\output\\data\\proc_daily_flux'
-    directory_meteoswiss = 'C:\\xrt\\output\\data\\meteoswiss'
-    directory_offsets = 'C:\\xrt\\output\\solar_scan'
+### This try/except is used to track errors and prinf them in the log file
     
-    checkdirs([directory_fitfiles, directory_output])
+### Get the filenames and dates of the files to process
+files2process = return_fits2process_csv(directory_output)
 
-    ### This try/except is used to track errors and prinf them in the log file
-    try:
-            
-        ### Get the filenames and dates of the files to process
-        filenames2process, dates2process = return_fits2process_csv(directory_fitfiles, directory_output)
+### Get the dates of the telescope operations
+dates_telescope_operations = get_dates_telescope_operations()
 
-        ### Get the dates of the telescope operations
-        dates_telescope_operations = get_dates_telescope_operations()
 
-        ### Loop on all the days to process
-        len_dates = len(dates2process)
-        if len(dates2process) > 0:
-            for this_date in dates2process:
+if not len(files2process):
+    sys.exit()
+    
+### Loop on all the days to process
+len_dates = len(files2process)
 
-                ### Find the meteoswiss CSV file and open it
-                YYYY = str(this_date.year)
-                MM = str(this_date.month) if this_date.month >= 10 else '0'+str(this_date.month)
-                DD = str(this_date.day) if this_date.day >= 10 else '0'+str(this_date.day)
-                this_date_csv = YYYY+'-'+MM+'-'+DD
-                filename_csv = 'meteoswiss_%s.csv' % this_date_csv 
-                filepath_csv = os.path.join(directory_meteoswiss, filename_csv)
-                df_meteoswiss = pd.read_csv(filepath_csv, sep=',')
-                time_meteoswiss = pd.to_datetime(df_meteoswiss['time'].values)
-                Thot_meteoswiss = df_meteoswiss['temp_degC'].values
-                precip_meteoswiss = df_meteoswiss['precip_mm'].values
-                irrad_meteoswiss = df_meteoswiss['irrad_W_m2'].values
+for this_date in files2process:
+    df_meteoswiss = get_meteoswiss_data(this_date)
 
-                ### Find the csv with the daily fluxes
-                filename_csv_flux = 'daily-flux_%s.csv' % YYYY
-                filepath_csv_flux = os.path.join(directory_output, filename_csv_flux)
-                #print(filepath_csv_flux)
-                # if it does not exist, create it
-                if os.path.exists(filepath_csv_flux):
-                    df_flux = pd.read_csv(filepath_csv_flux)
-                else:
-                    df_flux = pd.DataFrame(columns=['it_start_UT', 'it_end_UT', 'sfu_10640MHz', 'std_sfu_10640MHz', 'corr_sfu_10640MHz', 'corr_std_sfu_10640MHz', 'temp_K', 'precip_mm', 'global_irr_Wm2', 'quality_check_pointing', 'comment'])
-                    df_flux.to_csv(filepath_csv_flux, index=False)
+    ### Find the csv with the daily fluxes
+    filename_csv_flux = f'daily-flux_{this_date.strftime("%Y")}.csv'
+    filepath_csv_flux = os.path.join(directory_output, filename_csv_flux)
+    
+    # if it does not exist, create it
+    if os.path.exists(filepath_csv_flux):
+        df_flux = pd.read_csv(filepath_csv_flux)
+    else:
+        df_flux = pd.DataFrame(columns=['it_start_UT', 'it_end_UT', 'sfu_10640MHz', 'std_sfu_10640MHz', 'corr_sfu_10640MHz', 'corr_std_sfu_10640MHz', 'temp_K', 'precip_mm', 'global_irr_Wm2', 'quality_check_pointing', 'comment'])
+        df_flux.to_csv(filepath_csv_flux, index=False)
 
-                ### Find the indices of the measures in the morning, noon and afternoon
-                idx_morning = [i for i in range(len(time_meteoswiss)) if time_meteoswiss[i].hour == 9]
-                idx_noon = [i for i in range(len(time_meteoswiss)) if time_meteoswiss[i].hour == 11]
-                idx_afternoon = [i for i in range(len(time_meteoswiss)) if time_meteoswiss[i].hour == 13]
+    # Loop on all time periods
+    for t0,t1 in zip(ref_times_start, ref_times_end):
+        # concat date and time from ref_times to form proper datetimes
+        t0 = datetime.datetime.strptime(this_date.strftime("%Y%m%d ")+t0,
+                                        "%Y%m%d %H:%M")
+        t1 = datetime.datetime.strptime(this_date.strftime("%Y%m%d ")+t1,
+                                        "%Y%m%d %H:%M")
+        df_indexed = df_meteoswiss.loc[(df_meteoswiss["time"] > t0)
+                                & (df_meteoswiss["time"] <= t1)]
 
-                ### Mean weather values for morning, noon and afternoon
-                mean_Thot_morning = Thot_meteoswiss[idx_morning].mean() + 273.15
-                mean_Thot_noon = Thot_meteoswiss[idx_noon].mean() + 273.15
-                mean_Thot_afternoon = Thot_meteoswiss[idx_afternoon].mean() + 273.15
-                total_precip_morning = precip_meteoswiss[idx_morning].sum()
-                total_precip_noon = precip_meteoswiss[idx_noon].sum()
-                total_precip_afternoon = precip_meteoswiss[idx_afternoon].sum()
-                mean_irrad_morning = irrad_meteoswiss[idx_morning].mean()
-                mean_irrad_noon = irrad_meteoswiss[idx_noon].mean()
-                mean_irrad_afternoon = irrad_meteoswiss[idx_afternoon].mean()
+        mean_Thot = df_indexed["temp_degC"].mean() + 273.15
+        total_precip = df_indexed["precip_mm"].sum()
+        mean_irrad = df_indexed["irrad_W_m2"].mean() 
+   
+        ### find indices of datetimes_FIT that are in the time interval
+        fit_times_day = files2process[this_date]["times"]
+        idx = np.logical_and(fit_times_day > t0, fit_times_day <= t1)
+        
+    ### Loop on all files at the different times of the day
+    # morning
+    if len(idx_morning_FIT) != 4 or this_date in dates_telescope_operations:
+        print()
+        print('Warning: telescope operation or missing FIT files on %s (morning)' % this_date)
+        print('NaNs will be stored in the output file')
+        sfu_morning = np.nan
+        std_morning = np.nan
+        comment_morning = 'TO '
+    else:
+        sfu_morning = []
+        for i in idx_morning_FIT:
+            path_fitfile = os.path.join(directory_fitfiles, filenames_this_date[i])
+            sfu_m = processFIT_returnSFU(path_fitfile, this_date, mean_Thot_morning, total_precip_morning, in_freq)
+            sfu_morning.extend(sfu_m)
+        comment_morning = get_comment(sfu_morning, total_precip_morning)
+        std_morning = integrated_std(sfu_morning)
+        sfu_morning = np.mean(sfu_morning)
 
-                ### Get all the filenames of the FIT files for this date
-                date_FIT = str(this_date).replace('-', '')
-                filenames_this_date = [f for f in filenames2process if f.split('_')[1] == date_FIT]
+    # noon
+    if len(idx_noon_FIT) != 4 or this_date in dates_telescope_operations:
+        print()
+        print('Warning: telescope operation or missing FIT files on %s (noon)' % this_date)
+        print('NaNs will be stored in the output file')
+        sfu_noon = np.nan
+        std_noon = np.nan
+        comment_noon = 'TO '
+    else:        
+        sfu_noon = []
+        for i in idx_noon_FIT:
+            path_fitfile = os.path.join(directory_fitfiles, filenames_this_date[i])
+            sfu_n = processFIT_returnSFU(path_fitfile, this_date, mean_Thot_noon, total_precip_noon, in_freq)
+            sfu_noon.extend(sfu_n)
+        comment_noon = get_comment(sfu_noon, total_precip_noon)
+        std_noon = integrated_std(sfu_noon)
+        sfu_noon = np.mean(sfu_noon)
 
-                ### Datetimes of the FIT files
-                datetimes_FIT = [pd.to_datetime(f.split('_')[1]+' '+f.split('_')[2]) for f in filenames_this_date]
-
-                ### find indices of datetimes_FIT that are in the morning, noon and afternoon
-                idx_morning_FIT = [i for i in range(len(datetimes_FIT)) if datetimes_FIT[i].hour == 9]
-                idx_noon_FIT = [i for i in range(len(datetimes_FIT)) if datetimes_FIT[i].hour == 11]
-                idx_afternoon_FIT = [i for i in range(len(datetimes_FIT)) if datetimes_FIT[i].hour == 13]
-
-                ### Loop on all files at the different times of the day
-                # morning
-                if len(idx_morning_FIT) != 4 or this_date in dates_telescope_operations:
-                    print()
-                    print('Warning: telescope operation or missing FIT files on %s (morning)' % this_date)
-                    print('NaNs will be stored in the output file')
-                    sfu_morning = np.nan
-                    std_morning = np.nan
-                    comment_morning = 'TO '
-                else:
-                    sfu_morning = []
-                    for i in idx_morning_FIT:
-                        path_fitfile = os.path.join(directory_fitfiles, filenames_this_date[i])
-                        sfu_m = processFIT_returnSFU(path_fitfile, this_date, mean_Thot_morning, total_precip_morning, in_freq)
-                        sfu_morning.extend(sfu_m)
-                    comment_morning = get_comment(sfu_morning, total_precip_morning)
-                    std_morning = integrated_std(sfu_morning)
-                    sfu_morning = np.mean(sfu_morning)
-
-                # noon
-                if len(idx_noon_FIT) != 4 or this_date in dates_telescope_operations:
-                    print()
-                    print('Warning: telescope operation or missing FIT files on %s (noon)' % this_date)
-                    print('NaNs will be stored in the output file')
-                    sfu_noon = np.nan
-                    std_noon = np.nan
-                    comment_noon = 'TO '
-                else:        
-                    sfu_noon = []
-                    for i in idx_noon_FIT:
-                        path_fitfile = os.path.join(directory_fitfiles, filenames_this_date[i])
-                        sfu_n = processFIT_returnSFU(path_fitfile, this_date, mean_Thot_noon, total_precip_noon, in_freq)
-                        sfu_noon.extend(sfu_n)
-                    comment_noon = get_comment(sfu_noon, total_precip_noon)
-                    std_noon = integrated_std(sfu_noon)
-                    sfu_noon = np.mean(sfu_noon)
-
-                # afternoon
-                if len(idx_afternoon_FIT) != 4 or this_date in dates_telescope_operations:
-                    print()
-                    print('Warning: telescope operation or missing FIT files on %s (afternoon)' % this_date)
-                    print('NaNs will be stored in the output file')
-                    sfu_afternoon = np.nan
-                    std_afternoon = np.nan
-                    comment_afternoon = 'TO '
-                else:
-                    sfu_afternoon = []
-                    for i in idx_afternoon_FIT:
-                        path_fitfile = os.path.join(directory_fitfiles, filenames_this_date[i])
-                        sfu_a = processFIT_returnSFU(path_fitfile, this_date, mean_Thot_afternoon, total_precip_afternoon, in_freq)
-                        sfu_afternoon.extend(sfu_a)
-                    comment_afternoon = get_comment(sfu_afternoon, total_precip_afternoon)
-                    std_afternoon = integrated_std(sfu_afternoon)
-                    sfu_afternoon = np.mean(sfu_afternoon)
-                
+    # afternoon
+    if len(idx_afternoon_FIT) != 4 or this_date in dates_telescope_operations:
+        print()
+        print('Warning: telescope operation or missing FIT files on %s (afternoon)' % this_date)
+        print('NaNs will be stored in the output file')
+        sfu_afternoon = np.nan
+        std_afternoon = np.nan
+        comment_afternoon = 'TO '
+    else:
+        sfu_afternoon = []
+        for i in idx_afternoon_FIT:
+            path_fitfile = os.path.join(directory_fitfiles, filenames_this_date[i])
+            sfu_a = processFIT_returnSFU(path_fitfile, this_date, mean_Thot_afternoon, total_precip_afternoon, in_freq)
+            sfu_afternoon.extend(sfu_a)
+        comment_afternoon = get_comment(sfu_afternoon, total_precip_afternoon)
+        std_afternoon = integrated_std(sfu_afternoon)
+        sfu_afternoon = np.mean(sfu_afternoon)
+    
                 
             
 #%%
