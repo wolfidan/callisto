@@ -239,14 +239,13 @@ for i in range(nscans): # loop on all sun raster scans
             ax1[-1].set_axis_off()
             ax2[-1].set_axis_off()
         
-        #fig1.savefig(os.path.join(folder_images,f'solar-scan59_time-profiles_{day_dt.strftime("%Y-%m-%d")}.png'))
-         #fig2.savefig(os.path.join(folder_images,f'solar-scan59_map_{day_dt.strftime("%Y-%m-%d")}.png'))
+        fig1.savefig(os.path.join(folder_images,f'solar-scan59_time-profiles_{day_dt.strftime("%Y-%m-%d")}.png'))
+        fig2.savefig(os.path.join(folder_images,f'solar-scan59_map_{day_dt.strftime("%Y-%m-%d")}.png'))
 
         # If everything runs successfully
         log_execution(logfname, "Successfully run")
 
     except Exception as err:
-        raise
         ### Save NaNs in the csv file if it fails
         params = [np.nan, np.nan, np.nan, np.nan, np.nan]
         quality_check = 0
