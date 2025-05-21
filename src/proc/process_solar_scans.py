@@ -242,10 +242,10 @@ for i in range(nscans): # loop on all sun raster scans
         fig1.subplots_adjust(top=0.92)
         fig2.subplots_adjust(top=0.92)
         # delete empty axes if needed
-        if nscans % 2:
-            ax1[-1].set_axis_off()
-            ax2[-1].set_axis_off()
-        
+        for ax in ax2:
+            if not len(ax2[-1].title.get_text()):
+                ax.set_axis_off()
+            
         fig1.savefig(os.path.join(folder_images,f'solar-scan59_time-profiles_{day_dt.strftime("%Y-%m-%d")}.png'),
                      bbox_inches="tight", dpi=300)
         fig2.savefig(os.path.join(folder_images,f'solar-scan59_map_{day_dt.strftime("%Y-%m-%d")}.png'),
