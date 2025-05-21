@@ -239,21 +239,6 @@ for i in range(nscans): # loop on all sun raster scans
         if not quality_check:
             ax2[i].text(0, 0.3, 'off-pointing', fontsize=40, color='red', fontweight='bold', alpha=0.5, ha='center', va='center')
             
-        fig1.subplots_adjust(top=0.92)
-        fig2.subplots_adjust(top=0.92)
-        # delete empty axes if needed
-        for ax in ax2:
-            if not len(ax2[-1].title.get_text()):
-                ax.set_axis_off()
-            
-        fig1.savefig(os.path.join(folder_images,f'solar-scan59_time-profiles_{day_dt.strftime("%Y-%m-%d")}.png'),
-                     bbox_inches="tight", dpi=300)
-        fig2.savefig(os.path.join(folder_images,f'solar-scan59_map_{day_dt.strftime("%Y-%m-%d")}.png'),
-                     bbox_inches="tight", dpi=300)
-
-        # If everything runs successfully
-        log_execution(logfname, "Successfully run")
-
     except Exception as err:
         ### Save NaNs in the csv file if it fails
         params = [np.nan, np.nan, np.nan, np.nan, np.nan]
@@ -267,7 +252,26 @@ for i in range(nscans): # loop on all sun raster scans
         all_quality_checks.append(quality_check)
         all_start_times.append(dtimes[0].strftime("%Y-%m-%d %H:%M:%S"))
         all_end_times.append(dtimes[-1].strftime("%Y-%m-%d %H:%M:%S"))
-        
+       
+# Save figures
+fig1.subplots_adjust(top=0.92)
+fig2.subplots_adjust(top=0.92)
+# delete empty axes if needed
+for ax in ax2:
+    if not ax.has_data() and not ax.images and not ax.patches:
+        fig2.delaxes(ax)
+for ax in ax1:
+    if not ax.has_data() and not ax.images and not ax.patches:
+        fig1.delaxes(ax)
+            
+fig1.savefig(os.path.join(folder_images,f'solar-scan59_time-profiles_{day_dt.strftime("%Y-%m-%d")}.png'),
+                bbox_inches="tight", dpi=300)
+fig2.savefig(os.path.join(folder_images,f'solar-scan59_map_{day_dt.strftime("%Y-%m-%d")}.png'),
+                bbox_inches="tight", dpi=300)
+
+# If everything runs successfully
+log_execution(logfname, "Successfully run")
+         
 ### Find the csv with the pointing offsets
 YYYY = all_start_times[0][0:4]
 filename_csv_offsets = 'pointing-offsets_%s.csv' % YYYY
