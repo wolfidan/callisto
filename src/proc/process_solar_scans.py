@@ -49,11 +49,16 @@ message_sunscans = " New scanning59 position"
 
 ### If two sunscans are further away in time than this time (in seconds) 
 # we consider them as separate sunscans
-max_time_diff_sunscans = 60
+max_time_diff_sunscans = 60 # sec
 
 ### If the distance of the center of the fitted paraboloid is larger than this value,
 # we consider the measure as "off-pointing"
 dist_quality_check = 0.7 # deg
+
+### In the sun raster scan plots, the raw data from the fit files
+# is averaged over this time interval around the timestamp of the
+# raster scan
+average_interval = 1.5 # sec
 
 # Log filename
 logfname = 'C:\\xrt\\output\\solar_scan\\log_process_solar_scan.txt'
@@ -120,7 +125,7 @@ for i in range(nscans): # loop on all sun raster scans
         idx_freq_closest = np.argmin(np.abs(fit_data["freqs"] - freq))
 
         ##### only select times relevant for the scan in the FIT files
-        buffer = datetime.timedelta(seconds = 1.5)
+        buffer = datetime.timedelta(seconds = average_interval)
         mask_inscan = np.logical_and(fit_data["datetimes"] >= dtimes[0] - buffer/2.0,
                             fit_data["datetimes"] <= dtimes[-1] + buffer/2.)
         
@@ -186,8 +191,9 @@ for i in range(nscans): # loop on all sun raster scans
         tot_time = (fit_times_in_scan[-1] - fit_times_in_scan[0]).seconds
         interval = 10 * int(np.ceil(tot_time / 60))
             
-        ax1[i].plot(fit_times_in_scan, fit_data_in_scan, label='Morning', lw=2)
-        ax1[i].scatter(dtimes_with_offset, data_avg, c='r', s=100, label='Morning (averaged)')
+        ax1[i].plot(fit_times_in_scan, fit_data_in_scan, label='Raw data', lw=2)
+        ax1[i].scatter(dtimes_with_offset, data_avg, c='r', 
+                       s=100, label=f'{average_interval}s Averages')
         ax1[i].set_ylabel('dBadu')
         ax1[i].set_xlabel('UT')
         ax1[i].xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%H:%M:%S'))

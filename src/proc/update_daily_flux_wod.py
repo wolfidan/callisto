@@ -55,6 +55,9 @@ warnings.filterwarnings('ignore')
 
 #************************** USER INPUTS **************************
 
+### Which frequency to use (MHz)
+in_freq = 10640
+
 ### Directory where to store the pointing offsets
 directory_csv_offsets = 'C:\\xrt\\output\\solar_scan'
 
@@ -215,9 +218,9 @@ def processFIT_returnSFU(FIT_file, FIT_date, Thot_K, precip_mm, in_freq):
     Dlin = 10.0**(dB/10) # dB -> linear power
 
     ### Cold calibration
-    T1 = int((20-Terr)/dT) # start Icold, sec -> pixel
+    tstop = int((20-Terr)/dT) # start Icold, sec -> pixel
     T2 = int((50-Terr)/dT)
-    Icold = np.mean(Dlin[:,T1:T2],axis=1)  # Icold for each freq, mean over time
+    Icold = np.mean(Dlin[:,tstop:T2],axis=1)  # Icold for each freq, mean over time
 
     ### Hot calibration
     T3 = int(( 80-Terr)/dT) # start Ihot, sec -> pixel
@@ -343,140 +346,12 @@ def f_offpointing_correction(dist):
     hpbw = 2.8
     return np.exp(-4*np.log(2)*(dist/hpbw)**2)
 
-
-#**********
-
-
-def get_correction_factor(directory_offsets, date):
-    '''
-    This function calculates and returns the off-pointing correction factor for the flux.
-    So far [2024-04-02], we do an average between two consecutive scans to get the final factor.
-    This factor needs to be multiplied to the final flux.
-    
-    
-    -----> for the half-power-beam-width we assume 2.8 deg. However, one can get the value
-           directly from the csv (hence from the fit; needs to be checked)
-    
-    '''
-    
-    date = pd.to_datetime(date)
-    
-    ### Read the csv file
-    YYYY = str(date.year)
-    filepath_csv_offsets = os.path.join(directory_offsets, 'pointing-offsets_'+YYYY+'.csv')
-    df_offsets = pd.read_csv(filepath_csv_offsets)    
-    start_scan = pd.to_datetime(df_offsets['start_scan_UTC'].values)
-    delta_azi_fit = df_offsets['delta_azi_fit'].values
-    delta_ele_fit = df_offsets['delta_ele_fit'].values
-    quality_check = df_offsets['quality_check'].values
-    
-    ### We need to distinguish the days before and after 2025-04-01, as
-    ## from 2025-03-19 to 2025-03-31 only 3 scans were done
-    if date > pd.to_datetime('2025-03-31 23:00:00'):
-        ### Get the proper times
-        time_scan_morning_before = pd.to_datetime(str(date.date()) + ' 08:59:00')
-        time_scan_morning_after = pd.to_datetime(str(date.date()) + ' 09:59:00')
-        time_scan_noon_before = pd.to_datetime(str(date.date()) + ' 10:59:00')
-        time_scan_noon_after = pd.to_datetime(str(date.date()) + ' 11:59:00')
-        time_scan_afternoon_before = pd.to_datetime(str(date.date()) + ' 12:59:00')
-        time_scan_afternoon_after = pd.to_datetime(str(date.date()) + ' 13:59:00')
-        idx_morning_before = np.argmin(np.abs(start_scan-time_scan_morning_before))
-        idx_morning_after = np.argmin(np.abs(start_scan-time_scan_morning_after))
-        idx_noon_before = np.argmin(np.abs(start_scan-time_scan_noon_before))
-        idx_noon_after = np.argmin(np.abs(start_scan-time_scan_noon_after))
-        idx_afternoon_before = np.argmin(np.abs(start_scan-time_scan_afternoon_before))
-        idx_afternoon_after = np.argmin(np.abs(start_scan-time_scan_afternoon_after))
-        
-        ### Get the delta azimuth and elevations
-        dazi_morning_before = delta_azi_fit[idx_morning_before]
-        dele_morning_before = delta_ele_fit[idx_morning_before]
-        dazi_morning_after = delta_azi_fit[idx_morning_after]
-        dele_morning_after = delta_ele_fit[idx_morning_after]
-        dazi_noon_before = delta_azi_fit[idx_noon_before]
-        dele_noon_before = delta_ele_fit[idx_noon_before]
-        dazi_noon_after = delta_azi_fit[idx_noon_after]
-        dele_noon_after = delta_ele_fit[idx_noon_after]
-        dazi_afternoon_before = delta_azi_fit[idx_afternoon_before]
-        dele_afternoon_before = delta_ele_fit[idx_afternoon_before]
-        dazi_afternoon_after = delta_azi_fit[idx_afternoon_after]
-        dele_afternoon_after = delta_ele_fit[idx_afternoon_after]
-        
-        ### Get the quality checks
-        quality_check_morning_before = quality_check[idx_morning_before]
-        quality_check_morning_after = quality_check[idx_morning_after]
-        quality_check_noon_before = quality_check[idx_noon_before]
-        quality_check_noon_after = quality_check[idx_noon_after]
-        quality_check_afternoon_before = quality_check[idx_afternoon_before]
-        quality_check_afternoon_after = quality_check[idx_afternoon_after]
-        
-        ### Calculate the correction factors (for the formula, ask Marco Gabella)
-        dist_morning_before = np.sqrt(dazi_morning_before**2+dele_morning_before**2)
-        dist_morning_after = np.sqrt(dazi_morning_after**2+dele_morning_after**2)
-        dist_noon_before = np.sqrt(dazi_noon_before**2+dele_noon_before**2)
-        dist_noon_after = np.sqrt(dazi_noon_after**2+dele_noon_after**2)
-        dist_afternoon_before = np.sqrt(dazi_afternoon_before**2+dele_afternoon_before**2)
-        dist_afternoon_after = np.sqrt(dazi_afternoon_after**2+dele_afternoon_after**2)
-        c_morning_before = f_offpointing_correction(dist_morning_before)
-        c_morning_after = f_offpointing_correction(dist_morning_after)
-        c_noon_before = f_offpointing_correction(dist_noon_before)
-        c_noon_after = f_offpointing_correction(dist_noon_after)
-        c_afternoon_before = f_offpointing_correction(dist_afternoon_before)
-        c_afternoon_after = f_offpointing_correction(dist_afternoon_after)
-        c_morning = np.mean([c_morning_before, c_morning_after])
-        c_noon = np.mean([c_noon_before, c_noon_after])
-        c_afternoon = np.mean([c_afternoon_before, c_afternoon_after])
-        
-        ### quality factor to return
-        quality_pointing_morning = 1
-        quality_pointing_noon = 1
-        quality_pointing_afternoon = 1
-        if quality_check_morning_before == 0 or quality_check_morning_after == 0: quality_pointing_morning = 0
-        if quality_check_noon_before == 0 or quality_check_noon_after == 0: quality_pointing_noon = 0
-        if quality_check_afternoon_before == 0 or quality_check_afternoon_after == 0: quality_pointing_afternoon = 0 
-        
-    else:
-        ### Get the proper times
-        time_scan_morning = pd.to_datetime(str(date.date()) + ' 08:59:00')
-        time_scan_noon = pd.to_datetime(str(date.date()) + ' 10:59:00')
-        time_scan_afternoon = pd.to_datetime(str(date.date()) + ' 12:59:00')
-        idx_morning = np.argmin(np.abs(start_scan-time_scan_morning))
-        idx_noon = np.argmin(np.abs(start_scan-time_scan_noon))
-        idx_afternoon = np.argmin(np.abs(start_scan-time_scan_afternoon))
-
-        ### Get the delta azimuth and elevations
-        dazi_morning = delta_azi_fit[idx_morning]
-        dele_morning = delta_ele_fit[idx_morning]
-        dazi_noon = delta_azi_fit[idx_noon]
-        dele_noon = delta_ele_fit[idx_noon]
-        dazi_afternoon = delta_azi_fit[idx_afternoon]
-        dele_afternoon = delta_ele_fit[idx_afternoon]
-
-        ### Get the quality checks
-        quality_pointing_morning = quality_check[idx_morning]
-        quality_pointing_noon = quality_check[idx_noon]
-        quality_pointing_afternoon = quality_check[idx_afternoon]
-        
-        ### Calculate the correction factors (for the formula, ask Marco Gabella)
-        dist_morning = np.sqrt(dazi_morning**2+dele_morning**2)
-        dist_noon = np.sqrt(dazi_noon**2+dele_noon**2)
-        dist_afternoon = np.sqrt(dazi_afternoon**2+dele_afternoon**2)
-        c_morning = f_offpointing_correction(dist_morning)
-        c_noon = f_offpointing_correction(dist_noon)
-        c_afternoon = f_offpointing_correction(dist_afternoon)
-        
-    return c_morning, c_noon, c_afternoon, quality_pointing_morning, quality_pointing_noon, quality_pointing_afternoon
-
-
-#************************** MAIN **************************
-
-### This try/except is used to track errors and prinf them in the log file
-    
+#************************** MAIN ************************** 
 ### Get the filenames and dates of the files to process
 files2process = return_fits2process_csv(directory_output)
 
 ### Get the dates of the telescope operations
 dates_telescope_operations = get_dates_telescope_operations()
-
 
 if not len(files2process):
     sys.exit()
@@ -499,163 +374,123 @@ for this_date in files2process:
         df_flux.to_csv(filepath_csv_flux, index=False)
 
     # Loop on all time periods
-    for t0,t1 in zip(ref_times_start, ref_times_end):
+    for tstart,tstop in zip(ref_times_start, ref_times_end):
         # concat date and time from ref_times to form proper datetimes
-        t0 = datetime.datetime.strptime(this_date.strftime("%Y%m%d ")+t0,
-                                        "%Y%m%d %H:%M")
-        t1 = datetime.datetime.strptime(this_date.strftime("%Y%m%d ")+t1,
-                                        "%Y%m%d %H:%M")
-        df_indexed = df_meteoswiss.loc[(df_meteoswiss["time"] > t0)
-                                & (df_meteoswiss["time"] <= t1)]
+        tstart = datetime.datetime.strptime(this_date.strftime("%Y%m%d ")+tstart,
+                                "%Y%m%d %H:%M").replace(tzinfo=datetime.timezone.utc)
+        tstop = datetime.datetime.strptime(this_date.strftime("%Y%m%d ")+tstop,
+                                "%Y%m%d %H:%M").replace(tzinfo=datetime.timezone.utc)
+        df_indexed = df_meteoswiss.loc[(df_meteoswiss["time"] > tstart)
+                                & (df_meteoswiss["time"] <= tstop)]
 
         mean_Thot = df_indexed["temp_degC"].mean() + 273.15
         total_precip = df_indexed["precip_mm"].sum()
         mean_irrad = df_indexed["irrad_W_m2"].mean() 
    
         ### find indices of datetimes_FIT that are in the time interval
-        fit_times_day = files2process[this_date]["times"]
-        idx = np.logical_and(fit_times_day > t0, fit_times_day <= t1)
+        # Get start and end times of fit files
+        fit_times_start = files2process[this_date]["times"]
+        offset = fit_times_start[-1] - fit_times_start[-2]
+        fit_times_stop = fit_times_start[1::]
+        # add offset
+        fit_times_stop = np.array(list(fit_times_stop) + 
+                                [fit_times_stop[-1] + offset])  
         
-    ### Loop on all files at the different times of the day
-    # morning
-    if len(idx_morning_FIT) != 4 or this_date in dates_telescope_operations:
-        print()
-        print('Warning: telescope operation or missing FIT files on %s (morning)' % this_date)
-        print('NaNs will be stored in the output file')
-        sfu_morning = np.nan
-        std_morning = np.nan
-        comment_morning = 'TO '
-    else:
-        sfu_morning = []
-        for i in idx_morning_FIT:
-            path_fitfile = os.path.join(directory_fitfiles, filenames_this_date[i])
-            sfu_m = processFIT_returnSFU(path_fitfile, this_date, mean_Thot_morning, total_precip_morning, in_freq)
-            sfu_morning.extend(sfu_m)
-        comment_morning = get_comment(sfu_morning, total_precip_morning)
-        std_morning = integrated_std(sfu_morning)
-        sfu_morning = np.mean(sfu_morning)
+        isin_timeperiod = np.logical_and(fit_times_start > tstart,
+                                         fit_times_stop <= tstop)
+        
+        if not any(isin_timeperiod): # no file found
+            sfu = np.nan
+            std = np.nan
+            comment = 'TO '
+        else:
+            indexes = np.where(isin_timeperiod)[0]
+            for idx in indexes:
+                fitfile = files2process[this_date]['files'][idx]
+                sfu = processFIT_returnSFU(fitfile,
+                                        this_date, 
+                                        mean_Thot, 
+                                        total_precip, 
+                                        in_freq)
+                sfu.extend(sfu)
+            comment = get_comment(sfu, total_precip)
+            std = integrated_std(sfu)
+            sfu = np.mean(sfu)
+        
+        ### Read the pointing csv file
+        YYYY = str(tstart.year)
+        filepath_csv_offsets = os.path.join(directory_csv_offsets,
+            'pointing-offsets_'+YYYY+'.csv')
+        df_offsets = pd.read_csv(filepath_csv_offsets, parse_dates = ["start_scan_UTC"],
+                                 date_format  = "%Y-%m-%d %H:%M:%S")    
+        start_scan = df_offsets['start_scan_UTC'].dt.tz_localize("UTC")
+        
+        delta_azi_fit = df_offsets['delta_azi_fit'].values
+        delta_ele_fit = df_offsets['delta_ele_fit'].values
+        quality_check = df_offsets['quality_check'].values
 
-    # noon
-    if len(idx_noon_FIT) != 4 or this_date in dates_telescope_operations:
-        print()
-        print('Warning: telescope operation or missing FIT files on %s (noon)' % this_date)
-        print('NaNs will be stored in the output file')
-        sfu_noon = np.nan
-        std_noon = np.nan
-        comment_noon = 'TO '
-    else:        
-        sfu_noon = []
-        for i in idx_noon_FIT:
-            path_fitfile = os.path.join(directory_fitfiles, filenames_this_date[i])
-            sfu_n = processFIT_returnSFU(path_fitfile, this_date, mean_Thot_noon, total_precip_noon, in_freq)
-            sfu_noon.extend(sfu_n)
-        comment_noon = get_comment(sfu_noon, total_precip_noon)
-        std_noon = integrated_std(sfu_noon)
-        sfu_noon = np.mean(sfu_noon)
+        # Find index of timesteps that fall in time period
+        isin_timeperiod = np.logical_and(start_scan > pd.to_datetime(tstart),
+                start_scan <= pd.to_datetime(tstop))
 
-    # afternoon
-    if len(idx_afternoon_FIT) != 4 or this_date in dates_telescope_operations:
-        print()
-        print('Warning: telescope operation or missing FIT files on %s (afternoon)' % this_date)
-        print('NaNs will be stored in the output file')
-        sfu_afternoon = np.nan
-        std_afternoon = np.nan
-        comment_afternoon = 'TO '
-    else:
-        sfu_afternoon = []
-        for i in idx_afternoon_FIT:
-            path_fitfile = os.path.join(directory_fitfiles, filenames_this_date[i])
-            sfu_a = processFIT_returnSFU(path_fitfile, this_date, mean_Thot_afternoon, total_precip_afternoon, in_freq)
-            sfu_afternoon.extend(sfu_a)
-        comment_afternoon = get_comment(sfu_afternoon, total_precip_afternoon)
-        std_afternoon = integrated_std(sfu_afternoon)
-        sfu_afternoon = np.mean(sfu_afternoon)
-    
-                
+        if not np.any(isin_timeperiod):
+            avg_corr = 1
+            avg_quality_check = -9999
             
-#%%
-                ### Get the correction factors
-                # the solar scans started only on 2025-03-19
-                if pd.to_datetime(this_date) > pd.to_datetime('2025-03-18 18:00:00'):
-                    c_morning, c_noon, c_afternoon, quality_pointing_morning, quality_pointing_noon, quality_pointing_afternoon = get_correction_factor(directory_offsets, this_date)
-                else:
-                    c_morning = 1
-                    c_noon = 1
-                    c_afternoon = 1
-                    quality_pointing_morning = 1
-                    quality_pointing_noon = 1
-                    quality_pointing_afternoon = 1
-                
-                ### Store the results in the update the csv file in df_flux by adding the new values
-                df_flux = pd.read_csv(filepath_csv_flux)
-                new_row = pd.DataFrame({'it_start_UT': str(this_date)+' 09:00:00', 
-                                        'it_end_UT': str(this_date)+' 10:00:00', 
-                                        'sfu_10640MHz': sfu_morning, 
-                                        'std_sfu_10640MHz': std_morning, 
-                                        'corr_sfu_10640MHz': sfu_morning/c_morning,
-                                        'corr_std_sfu_10640MHz': std_morning/c_morning, 
-                                        'temp_K': mean_Thot_morning, 
-                                        'precip_mm': total_precip_morning, 
-                                        'global_irr_Wm2': mean_irrad_morning,
-                                        'quality_check_pointing': quality_pointing_morning, 
-                                        'comment': comment_morning}, index=[0])
-                df_flux = pd.concat([df_flux,new_row], ignore_index=True)
-                new_row = pd.DataFrame({'it_start_UT': str(this_date)+' 11:00:00',
-                                            'it_end_UT': str(this_date)+' 12:00:00',
-                                            'sfu_10640MHz': sfu_noon,
-                                            'std_sfu_10640MHz': std_noon,
-                                            'corr_sfu_10640MHz': sfu_noon/c_noon,
-                                            'corr_std_sfu_10640MHz': std_noon/c_noon,
-                                            'temp_K': mean_Thot_noon,
-                                            'precip_mm': total_precip_noon,
-                                            'global_irr_Wm2': mean_irrad_noon,
-                                            'quality_check_pointing': quality_pointing_noon,
-                                            'comment': comment_noon}, index=[0])
-                df_flux = pd.concat([df_flux,new_row], ignore_index=True)
-                new_row = pd.DataFrame({'it_start_UT': str(this_date)+' 13:00:00',
-                                            'it_end_UT': str(this_date)+' 14:00:00',
-                                            'sfu_10640MHz': sfu_afternoon,
-                                            'std_sfu_10640MHz': std_afternoon,
-                                            'corr_sfu_10640MHz': sfu_afternoon/c_afternoon,
-                                            'corr_std_sfu_10640MHz': std_afternoon/c_afternoon,
-                                            'temp_K': mean_Thot_afternoon,
-                                            'precip_mm': total_precip_afternoon,
-                                            'global_irr_Wm2': mean_irrad_afternoon,
-                                            'quality_check_pointing': quality_pointing_afternoon,
-                                            'comment': comment_afternoon}, index=[0])
-                df_flux = pd.concat([df_flux,new_row], ignore_index=True)
-                df_flux = df_flux.sort_values(by='it_start_UT')
-                #df_flux.to_csv(filepath_csv_flux, index=False)
-        
-        ### Open the last two CSV files and concatene them
-        this_date = pd.to_datetime('now')
-        YYYY = str(this_date.year)
-        YYYYm1 = str(this_date.year-1)
-        filename_csv_flux1 = 'daily-flux_%s.csv' % YYYY
-        filename_csv_flux2 = 'daily-flux_%s.csv' % YYYYm1
-        filepath_csv_flux1 = os.path.join(directory_output, filename_csv_flux1)
-        filepath_csv_flux2 = os.path.join(directory_output, filename_csv_flux2)
-        df_flux1 = pd.read_csv(filepath_csv_flux1)
-        df_flux2 = pd.read_csv(filepath_csv_flux2)
-        df_flux = pd.concat([df_flux1, df_flux2])
-        df_flux = df_flux.sort_values(by='it_start_UT')
+        else:
+            # Compute avg off-pointing correction
+            dazi = delta_azi_fit[isin_timeperiod]
+            dele = delta_ele_fit[isin_timeperiod]
+            dist = np.sqrt(dazi**2+dele**2)
+            corr = f_offpointing_correction(dist)
+            avg_corr = np.mean(corr)
+            
+            # Compute quality check
+            avg_quality_check = np.all(quality_check[isin_timeperiod])
 
-        ### Divide the df by month and year
-        now = pd.to_datetime('now')
-        one_month_ago = now - pd.DateOffset(months=1)
-        one_year_ago = now - pd.DateOffset(years=1)
-        df_flux_month = df_flux[pd.to_datetime(df_flux['it_start_UT']) > one_month_ago]
-        df_flux_year = df_flux[pd.to_datetime(df_flux['it_start_UT']) > one_year_ago]
+        ### Store the results in the update the csv file in df_flux by adding the new values
+        df_flux = pd.read_csv(filepath_csv_flux)
+        new_row = pd.DataFrame({'it_start_UT': str(tstart), 
+            'it_end_UT': str(tstop), 
+            'sfu_10640MHz': sfu, 
+            'std_sfu_10640MHz': std, 
+            'corr_sfu_10640MHz': sfu/avg_corr,
+            'corr_std_sfu_10640MHz': std/avg_corr, 
+            'temp_K': mean_Thot, 
+            'precip_mm': total_precip, 
+            'global_irr_Wm2': mean_irrad,
+            'quality_check_pointing': avg_quality_check, 
+            'comment': comment}, index=[0])
+                    
+    #     ### Open the last two CSV files and concatene them
+    #     this_date = pd.to_datetime('now')
+    #     YYYY = str(this_date.year)
+    #     YYYYm1 = str(this_date.year-1)
+    #     filename_csv_flux1 = 'daily-flux_%s.csv' % YYYY
+    #     filename_csv_flux2 = 'daily-flux_%s.csv' % YYYYm1
+    #     filepath_csv_flux1 = os.path.join(directory_output, filename_csv_flux1)
+    #     filepath_csv_flux2 = os.path.join(directory_output, filename_csv_flux2)
+    #     df_flux1 = pd.read_csv(filepath_csv_flux1)
+    #     df_flux2 = pd.read_csv(filepath_csv_flux2)
+    #     df_flux = pd.concat([df_flux1, df_flux2])
+    #     df_flux = df_flux.sort_values(by='it_start_UT')
+
+    #     ### Divide the df by month and year
+    #     now = pd.to_datetime('now')
+    #     one_month_ago = now - pd.DateOffset(months=1)
+    #     one_year_ago = now - pd.DateOffset(years=1)
+    #     df_flux_month = df_flux[pd.to_datetime(df_flux['it_start_UT']) > one_month_ago]
+    #     df_flux_year = df_flux[pd.to_datetime(df_flux['it_start_UT']) > one_year_ago]
         
-        ### Plot the daily fluxes
-        #plot_daily_fluxes(df_flux_month, directory_output, 'month')
-        #plot_daily_fluxes(df_flux_year, directory_output, 'year')
+    #     ### Plot the daily fluxes
+    #     #plot_daily_fluxes(df_flux_month, directory_output, 'month')
+    #     #plot_daily_fluxes(df_flux_year, directory_output, 'year')
         
-        # If everything runs successfully
-        log_execution(logfname, "Successfully run")
+    #     # If everything runs successfully
+    #     log_execution(logfname, "Successfully run")
         
-    except Exception as e:
-        ### If an error occurs, log the error message and stack trace
-        error_message = f"Error: {str(e)}\n{traceback.format_exc()}"
-        log_execution(logfname, error_message)
+    # except Exception as e:
+    #     ### If an error occurs, log the error message and stack trace
+    #     error_message = f"Error: {str(e)}\n{traceback.format_exc()}"
+    #     log_execution(logfname, error_message)
     
