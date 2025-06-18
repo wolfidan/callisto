@@ -1,0 +1,43 @@
+Control:
+  Location:
+    longitude: 8.7875
+    latitude: 46.1723
+    elevation: 374
+    temperature: 9.7
+    pressure: 971.6
+  Tracker:
+    max_range: 77
+    azi_min: 80.0
+    azi_max: 250.0
+    ele_min: -15.0
+    ele_max: 90.0
+    azi_park: 180
+    ele_park: 89
+    azi_ref: 183.4
+    ele_ref: 60.5
+    azi_dir: -1.0
+    ele_dir: 1.0
+    plane_corr: -0.0001
+    my_comport: COM4
+  Calibration:
+    do_cali: True
+    tstart_cali: 00:05
+    interval_cali: 00:15
+    azi_cold: 145.0
+    ele_cold: 77.0
+    azi_hot: 145.0
+    ele_hot: -14.0
+  Scanning:
+    do_scanning: True
+    tstart_scanning: 00:00
+    interval_scanning: 01:00
+    dazi: [-1.8, -1.8, -1.2, -1.2, -0.6, -0.6, 0.0, 0.0, 0.6, 0.6, 1.2, 1.2, 1.8, 1.8, 0]
+    dele: [1.5, -1.5, -1.5, 1.5, 1.5, -1.5, -1.5, 1.5, 1.5, -1.5, -1.5, 1.5, 1.5, -1.5, 0]
+    message: " New scanning59 position" # Message printed in the DISEQ files when scanning
+
+PostProc:
+  SunScans:
+    max_time_diff_sunscans: 60 # If two sunscans are further away in time than this time (in seconds) we consider them as separate sunscans
+    dist_quality_check: 0.7 # deg,  If the distance of the center of the fitted paraboloid is larger than this value, we consider the measure as "off-pointing"
+    average_interval: 1.5 # sec,  In the sun raster scan plots, the raw data from the fit files is averaged over this time interval around the timestamp of the raster scan
+    freq: 10637 # MHz, frequency to consider in the analysis
