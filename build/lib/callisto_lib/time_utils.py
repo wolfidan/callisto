@@ -39,22 +39,26 @@ def generate_times_for_range(start_time_str, end_time_str, interval_str):
 
     return times
 
-def decimal_ut_to_datetime(date, decimal_ut):
-    """
-    date: datetime.date
-    decimal_ut: e.g. 14.71333 (hours)
-    """
-    hours = int(decimal_ut)
-    minutes = int((decimal_ut - hours) * 60)
-    seconds = (decimal_ut - hours - minutes / 60) * 3600
-    return datetime.datetime(
-        date.year, date.month, date.day,
-        hours, minutes, int(seconds),
-        int((seconds % 1) * 1e6),
-        tzinfo=datetime.UTC
-    )
-
-
+def convert_decimal_hour_timedelta(time_df):
+    '''
+    This function converts the times of the log file of the motors to timedelta
+    '''
+    hhmmss = []
+    for t in time_df:
+        
+        # Extract hours
+        hh = int(t)
+        # Extract minutes
+        mm = int((t - hh) * 60)
+        # Extract seconds
+        ss = int(((t - hh) * 60 - mm) * 60)
+        # Extract milliseconds
+        mil = int(((t - hh) * 60 - mm - ss/60) * 60000)
+        # Format time 
+        hhmmss.append(datetime.timedelta(hours = hh, minutes = mm, seconds = ss,
+                                         milliseconds = mil))
+    
+    return np.array(hhmmss)
 
 #**************************************************************************
 
